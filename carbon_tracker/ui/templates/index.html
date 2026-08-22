@@ -1,0 +1,2391 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carbon Vortex Opportunity Tracker</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: rgba(17, 24, 39, 0.7);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --emerald: #10b981;
+            --emerald-bg: rgba(16, 185, 129, 0.1);
+            --amber: #f59e0b;
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --sidebar-width: 280px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Sidebar Styling */
+        aside {
+            width: var(--sidebar-width);
+            background: rgba(15, 23, 42, 0.95);
+            border-right: 1px solid var(--card-border);
+            padding: 2rem 1.5rem;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            z-index: 100;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 3rem;
+        }
+
+        .logo-spin {
+            font-size: 2rem;
+            animation: spin 8s linear infinite;
+        }
+
+        @keyframes spin {
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .logo-title {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 700;
+            font-size: 1.25rem;
+            background: linear-gradient(135deg, #60a5fa, #3b82f6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .nav-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin-bottom: 0.75rem;
+            font-weight: 600;
+        }
+
+        .chain-select-container {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .chain-btn {
+            background: transparent;
+            border: 1px solid transparent;
+            color: var(--text-muted);
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            text-align: left;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .chain-btn:hover {
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--text-main);
+        }
+
+        .chain-btn.active {
+            background: rgba(59, 130, 246, 0.1);
+            border-color: rgba(59, 130, 246, 0.3);
+            color: var(--primary);
+        }
+
+        .chain-badge {
+            font-size: 0.75rem;
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-main);
+            padding: 0.1rem 0.4rem;
+            border-radius: 4px;
+        }
+
+        .reload-btn {
+            margin-top: auto;
+            background: rgba(59, 130, 246, 0.1);
+            color: var(--primary);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            padding: 0.75rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            transition: all 0.2s ease;
+        }
+
+        .reload-btn:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        .export-btn {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--emerald);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            padding: 0.6rem 1.2rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s ease;
+        }
+
+        .export-btn:hover {
+            background: var(--emerald);
+            color: white;
+        }
+
+        /* Main Content Styling */
+        main {
+            margin-left: var(--sidebar-width);
+            flex: 1;
+            padding: 2.5rem 3rem;
+            max-width: 1600px;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2.5rem;
+        }
+
+        .header-title h1 {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 700;
+            font-size: 2rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .header-title p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        /* KPI Grid */
+        .metrics-section {
+            margin-bottom: 2.5rem;
+            display: none;
+            /* Shown dynamically when execute has data */
+        }
+
+        .metrics-section h3 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+            color: var(--text-main);
+        }
+
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .kpi-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            border-left: 4px solid var(--primary);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+        }
+
+        .kpi-chain {
+            font-size: 1.1rem;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 600;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding-bottom: 0.4rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .kpi-stat {
+            display: flex;
+            flex-direction: column;
+            gap: 0.2rem;
+            margin-top: 0.5rem;
+        }
+
+        .kpi-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .kpi-val {
+            font-size: 1.3rem;
+            font-weight: 700;
+        }
+
+        .kpi-val.reward {
+            color: var(--emerald);
+        }
+
+        /* Tab Navigation */
+        .tabs {
+            display: flex;
+            gap: 0.75rem;
+            border-bottom: 1px solid var(--card-border);
+            margin-bottom: 2rem;
+            padding-bottom: 0.5rem;
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            padding: 0.75rem 1.25rem;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .tab-btn:hover {
+            color: var(--text-main);
+        }
+
+        .tab-btn.active {
+            color: var(--primary);
+        }
+
+        .tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: -0.6rem;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background-color: var(--primary);
+            border-radius: 2px;
+        }
+
+        /* Glassmorphism Table Container */
+        .table-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+            width: 100%;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.9rem;
+        }
+
+        th {
+            background: rgba(15, 23, 42, 0.4);
+            color: var(--text-muted);
+            font-weight: 600;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--card-border);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        td {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+            white-space: nowrap;
+            color: #cbd5e1;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background: rgba(255, 255, 255, 0.015);
+            color: var(--text-main);
+        }
+
+        .action-cell {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .info-btn {
+            background: rgba(59, 130, 246, 0.1);
+            color: var(--primary);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.75rem;
+            transition: all 0.2s ease;
+        }
+
+        .info-btn:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        .badge-premium {
+            background: var(--emerald-bg);
+            color: var(--emerald);
+            padding: 0.25rem 0.5rem;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+
+        /* Empty State */
+        .empty-state {
+            padding: 5rem 2rem;
+            text-align: center;
+            color: var(--text-muted);
+        }
+
+        .empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Custom Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .modal-card {
+            background: rgba(15, 23, 42, 0.95);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            width: 100%;
+            max-width: 550px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            animation: modalSlide 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes modalSlide {
+            0% {
+                transform: scale(0.95);
+                opacity: 0;
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--card-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.25rem;
+        }
+
+        .modal-close {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: color 0.2s ease;
+        }
+
+        .modal-close:hover {
+            color: var(--text-main);
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+
+        .modal-row {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+        }
+
+        .modal-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+        }
+
+        .modal-val {
+            font-size: 0.95rem;
+            background: rgba(255, 255, 255, 0.02);
+            padding: 0.5rem 0.75rem;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            word-break: break-all;
+            font-family: monospace;
+        }
+
+        /* Clickable Token Symbol Styling */
+        .token-symbol-clickable {
+            color: var(--primary);
+            font-weight: 600;
+            cursor: pointer;
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.15rem 0.35rem;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+
+        .token-symbol-clickable:hover {
+            background: rgba(59, 130, 246, 0.15);
+            color: #60a5fa;
+            text-decoration: underline;
+        }
+
+        .token-symbol-clickable .copy-icon {
+            font-size: 0.8rem;
+            opacity: 0;
+            transform: scale(0.8);
+            transition: all 0.2s ease;
+        }
+
+        .token-symbol-clickable:hover .copy-icon {
+            opacity: 0.8;
+            transform: scale(1);
+        }
+
+        /* Toast Notifications */
+        .toast {
+            background: rgba(15, 23, 42, 0.9);
+            border: 1px solid var(--card-border);
+            color: var(--text-main);
+            padding: 0.75rem 1.25rem;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 0.9rem;
+            transform: translateY(20px);
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            pointer-events: auto;
+            min-width: 250px;
+            margin-top: 0.5rem;
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .toast.hide {
+            transform: translateY(-20px);
+            opacity: 0;
+        }
+
+        .toast-success {
+            border-left: 4px solid var(--emerald);
+        }
+
+        .exec-btn {
+            background: linear-gradient(135deg, var(--amber), #d97706);
+            color: #0b0f19;
+            border: none;
+            padding: 0.35rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);
+        }
+
+        .exec-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(245, 158, 11, 0.4);
+            filter: brightness(1.1);
+        }
+
+        .exec-btn:active {
+            transform: translateY(0);
+        }
+
+        /* Floating Action Bar for Batch execution */
+        .batch-bar {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            opacity: 0;
+            background: rgba(15, 23, 42, 0.95);
+            border: 1px solid var(--card-border);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(12px);
+            border-radius: 12px;
+            padding: 0.75rem 1.5rem;
+            z-index: 9999;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex;
+            align-items: center;
+        }
+
+        .batch-bar.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        .batch-bar-content {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            font-size: 0.95rem;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container"
+        style="position: fixed; bottom: 2rem; right: 2rem; z-index: 10000; display: flex; flex-direction: column; gap: 0.5rem; pointer-events: none;">
+    </div>
+
+    <!-- Sidebar Navigation -->
+    <aside>
+        <div class="logo-container">
+            <span class="logo-spin">🌀</span>
+            <span class="logo-title">Carbon Vortex</span>
+        </div>
+
+        <div class="nav-label">Jaringan Blockchain</div>
+        <div class="chain-select-container" id="chain-buttons">
+            <!-- Rendered Dynamically -->
+        </div>
+
+        <button class="reload-btn" id="reload-btn">
+            <span>🔄</span> Reload Data
+        </button>
+    </aside>
+
+    <!-- Main Content -->
+    <main>
+        <header>
+            <div class="header-title">
+                <h1 id="network-title">ALL CHAINS</h1>
+                <p id="network-subtitle">Memuat data peluang eksekusi & perdagangan...</p>
+            </div>
+            <button class="export-btn" onclick="exportPDF()">
+                <span>📄</span> Export PDF
+            </button>
+        </header>
+
+        <!-- KPI Section: 3 main cards & contribution bar -->
+        <section class="metrics-section" id="kpi-section">
+            <div class="kpi-grid" id="kpi-grid">
+                <div class="kpi-card" style="border-left-color: var(--emerald);">
+                    <div class="kpi-chain">Trade Level 1 Profit</div>
+                    <div class="kpi-stat">
+                        <span class="kpi-val" id="kpi-val-l1" style="font-size: 1.8rem; font-weight: 700; color: var(--emerald);">$0</span>
+                        <span class="kpi-label">Aktivitas penyeimbangan fee token</span>
+                    </div>
+                </div>
+                <div class="kpi-card" style="border-left-color: #3b82f6;">
+                    <div class="kpi-chain">Trade Level 2 Profit</div>
+                    <div class="kpi-stat">
+                        <span class="kpi-val" id="kpi-val-l2" style="font-size: 1.8rem; font-weight: 700; color: #3b82f6;">$0</span>
+                        <span class="kpi-label">Peluang arbitrage ke final target</span>
+                    </div>
+                </div>
+                <div class="kpi-card" style="border-left-color: var(--amber);">
+                    <div class="kpi-chain">Execute Reward</div>
+                    <div class="kpi-stat">
+                        <span class="kpi-val" id="kpi-val-exec" style="font-size: 1.8rem; font-weight: 700; color: var(--amber);">$0</span>
+                        <span class="kpi-label">Reward klaim eksekusi vortex</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="contribution-bar-container" style="margin-top: 1.5rem; display: none; background: var(--card-bg); padding: 1.25rem; border-radius: 12px; border: 1px solid var(--card-border);">
+                <h4 style="font-family: 'Outfit', sans-serif; font-size: 1.05rem; margin-bottom: 1.25rem; color: var(--text-main); border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                    <span>📊</span> Distribusi Kontribusi Blockchain
+                </h4>
+                
+                <!-- Bar 1: Level 1 Trades -->
+                <div class="contribution-row" id="contrib-row-l1" style="margin-bottom: 1.25rem;">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 0.4rem;">
+                        <span style="font-weight: 600; color: var(--emerald);">Level 1 Trade Profit Distribution</span>
+                        <span id="contrib-total-l1" style="font-weight: 700; color: var(--text-main);">$0</span>
+                    </div>
+                    <div class="bar-wrapper" style="height: 12px; border-radius: 6px; overflow: hidden; display: flex; background: rgba(255,255,255,0.05); width: 100%; border: 1px solid var(--card-border);"></div>
+                    <div class="legend" style="display: flex; gap: 1rem; margin-top: 0.4rem; flex-wrap: wrap; font-size: 0.75rem; color: var(--text-muted);"></div>
+                </div>
+                
+                <!-- Bar 2: Level 2 Trades -->
+                <div class="contribution-row" id="contrib-row-l2" style="margin-bottom: 1.25rem;">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 0.4rem;">
+                        <span style="font-weight: 600; color: #3b82f6;">Level 2 Trade Profit Distribution</span>
+                        <span id="contrib-total-l2" style="font-weight: 700; color: var(--text-main);">$0</span>
+                    </div>
+                    <div class="bar-wrapper" style="height: 12px; border-radius: 6px; overflow: hidden; display: flex; background: rgba(255,255,255,0.05); width: 100%; border: 1px solid var(--card-border);"></div>
+                    <div class="legend" style="display: flex; gap: 1rem; margin-top: 0.4rem; flex-wrap: wrap; font-size: 0.75rem; color: var(--text-muted);"></div>
+                </div>
+                
+                <!-- Bar 3: Execute Reward -->
+                <div class="contribution-row" id="contrib-row-exec" style="margin-bottom: 0;">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 0.4rem;">
+                        <span style="font-weight: 600; color: var(--amber);">Execute Reward Distribution</span>
+                        <span id="contrib-total-exec" style="font-weight: 700; color: var(--text-main);">$0</span>
+                    </div>
+                    <div class="bar-wrapper" style="height: 12px; border-radius: 6px; overflow: hidden; display: flex; background: rgba(255,255,255,0.05); width: 100%; border: 1px solid var(--card-border);"></div>
+                    <div class="legend" style="display: flex; gap: 1rem; margin-top: 0.4rem; flex-wrap: wrap; font-size: 0.75rem; color: var(--text-muted);"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tab Controls & Projection Panel -->
+        <div class="controls-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+            <div class="tabs" style="margin-bottom: 0;">
+                <button class="tab-btn active" onclick="switchTab('l2')">Level 2 Trades</button>
+                <button class="tab-btn" onclick="switchTab('l1')">Level 1 Trades</button>
+                <button class="tab-btn" onclick="switchTab('execute')">Execute Opportunities</button>
+            </div>
+            
+            <div class="projection-panel" style="display: flex; align-items: center; gap: 0.75rem; background: rgba(255,255,255,0.03); padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid var(--card-border);">
+                <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; cursor: pointer; font-weight: 500; user-select: none;">
+                    <input type="checkbox" id="projection-toggle" onchange="toggleProjectionMode()" style="cursor: pointer; transform: scale(1.1);">
+                    🔮 Mode Proyeksi (Masa Depan)
+                </label>
+                <div id="projection-input-container" style="display: none; align-items: center; gap: 0.75rem;">
+                    <input type="range" id="projection-days-slider" min="1" max="30" value="3" oninput="updateProjectionDaysText(this.value)" onchange="renderDashboard()" style="cursor: pointer; width: 120px;">
+                    <span id="projection-days-label" style="font-size: 0.9rem; font-weight: 600; color: var(--amber); min-width: 60px;">+3 Hari</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Table View Card -->
+        <div class="table-card">
+            <div class="table-responsive">
+                <table id="data-table">
+                    <thead>
+                        <tr id="table-headers">
+                            <!-- Rendered Dynamically -->
+                        </tr>
+                    </thead>
+                    <tbody id="table-rows">
+                        <!-- Rendered Dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- Opportunity Detail Modal -->
+    <div class="modal" id="detail-modal" onclick="closeModal(event)">
+        <div class="modal-card" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h3 id="modal-title">Token Details</h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="modal-body">
+                <!-- Rendered Dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Floating Batch Action Bar -->
+    <div id="batch-action-bar" class="batch-bar">
+        <div class="batch-bar-content">
+            <span id="batch-selected-text" style="font-weight: 600; color: var(--text-main);">0 tokens selected</span>
+            <button class="exec-btn" onclick="triggerBatchExecute()" style="padding: 0.5rem 1rem; font-size: 0.85rem;">⚡ Execute Selected</button>
+        </div>
+    </div>
+
+    <script>
+        const copyIconSvg = `
+            <svg class="copy-icon" viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle; margin-left: 4px;">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+        `;
+
+        const VORTEX_ADDRESSES = {
+            1: "0xD053Dcd7037AF7204cecE544Ea9F227824d79801",
+            1329: "0x5715203B16F15d7349Cb1E3537365E9664EAf933",
+            239: "0xf7c7d7507041977aB0328CAf449f1e80085709a9",
+            42220: "0xD9D89e8A0dfE549e5B424D5b511cB3b84A764857",
+            2632500: "0x653E98561925B55977c0100636CcD314C4F232c5"
+        };
+
+        const VORTEX_ABI = [
+            {
+                "inputs": [
+                    {
+                        "internalType": "Token[]",
+                        "name": "tokens",
+                        "type": "address[]"
+                    }
+                ],
+                "name": "execute",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "Token",
+                        "name": "token",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "uint128",
+                        "name": "targetAmount",
+                        "type": "uint128"
+                    },
+                    {
+                        "internalType": "uint128",
+                        "name": "maxInput",
+                        "type": "uint128"
+                    }
+                ],
+                "name": "trade",
+                "outputs": [],
+                "stateMutability": "payable",
+                "type": "function"
+            }
+        ];
+
+        const ERC20_ABI = [
+            {
+                "inputs": [
+                    { "name": "owner", "type": "address" },
+                    { "name": "spender", "type": "address" }
+                ],
+                "name": "allowance",
+                "outputs": [{ "name": "", "type": "uint256" }],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    { "name": "spender", "type": "address" },
+                    { "name": "amount", "type": "uint256" }
+                ],
+                "name": "approve",
+                "outputs": [{ "name": "", "type": "bool" }],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            }
+        ];
+
+        async function triggerExecuteOpportunity(tokenAddress, chainId, symbol) {
+            if (typeof window.ethereum === "undefined") {
+                showToast("MetaMask tidak terdeteksi. Silakan pasang MetaMask.", "warning");
+                return;
+            }
+            
+            const vortexAddress = VORTEX_ADDRESSES[chainId];
+            if (!vortexAddress) {
+                showToast(`Kontrak CarbonVortex untuk Chain ID ${chainId} tidak dikonfigurasi.`, "warning");
+                return;
+            }
+            
+            try {
+                await window.ethereum.request({ method: "eth_requestAccounts" });
+                
+                const provider = new ethers.BrowserProvider(window.ethereum);
+                const network = await provider.getNetwork();
+                
+                if (Number(network.chainId) !== Number(chainId)) {
+                    showToast(`Mengganti network wallet ke ${CHAIN_NAMES[chainId]}...`);
+                    const switched = await switchEthereumChain(chainId);
+                    if (!switched) return;
+                    
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    const newProvider = new ethers.BrowserProvider(window.ethereum);
+                    const newNetwork = await newProvider.getNetwork();
+                    if (Number(newNetwork.chainId) !== Number(chainId)) {
+                        showToast(`Harap konfirmasi peralihan network ke ${CHAIN_NAMES[chainId]}`, "warning");
+                        return;
+                    }
+                }
+                
+                const newProvider = new ethers.BrowserProvider(window.ethereum);
+                const signer = await newProvider.getSigner();
+                
+                const contract = new ethers.Contract(vortexAddress, VORTEX_ABI, signer);
+                
+                showToast(`Mengirim transaksi execute untuk ${symbol}...`);
+                
+                const tx = await contract.execute([tokenAddress]);
+                showToast("Transaksi dikirim! Menunggu konfirmasi...");
+                
+                const receipt = await tx.wait();
+                if (receipt.status === 1) {
+                    showToast(`Eksekusi ${symbol} berhasil!`, "success");
+                } else {
+                    showToast(`Eksekusi ${symbol} gagal di blockchain.`, "warning");
+                }
+            } catch (err) {
+                console.error("Gagal melakukan execute:", err);
+                if (err.code === 4001) {
+                    showToast("Transaksi dibatalkan oleh pengguna.", "warning");
+                } else {
+                    showToast(`Error: ${err.message || err}`, "warning");
+                }
+            }
+        }
+
+        async function switchEthereumChain(chainId) {
+            const hexChainId = "0x" + chainId.toString(16);
+            try {
+                await window.ethereum.request({
+                    method: "wallet_switchEthereumChain",
+                    params: [{ chainId: hexChainId }],
+                });
+                return true;
+            } catch (switchError) {
+                if (switchError.code === 4902) {
+                    const chainParams = GET_CHAIN_PARAMS(chainId);
+                    if (chainParams) {
+                        try {
+                            await window.ethereum.request({
+                                method: "wallet_addEthereumChain",
+                                params: [chainParams],
+                            });
+                            return true;
+                        } catch (addError) {
+                            console.error("Gagal menambahkan network:", addError);
+                        }
+                    }
+                    showToast(`Silakan tambahkan & ganti network ke ${CHAIN_NAMES[chainId]}`, "warning");
+                } else {
+                    console.error("Gagal mengganti network:", switchError);
+                    showToast("Gagal mengganti network wallet", "warning");
+                }
+                return false;
+            }
+        }
+
+        function GET_CHAIN_PARAMS(chainId) {
+            const params = {
+                1329: {
+                    chainId: "0x531",
+                    chainName: "Sei Mainnet",
+                    nativeCurrency: { name: "SEI", symbol: "SEI", decimals: 18 },
+                    rpcUrls: ["https://evm-rpc.sei-apis.com"],
+                    blockExplorerUrls: ["https://seitrace.com"]
+                },
+                239: {
+                    chainId: "0xef",
+                    chainName: "TAC Mainnet",
+                    nativeCurrency: { name: "TAC", symbol: "TAC", decimals: 18 },
+                    rpcUrls: ["https://rpc.tac.build"],
+                    blockExplorerUrls: ["https://explorer.tac.build"]
+                },
+                42220: {
+                    chainId: "0xa4ec",
+                    chainName: "Celo Mainnet",
+                    nativeCurrency: { name: "CELO", symbol: "CELO", decimals: 18 },
+                    rpcUrls: ["https://forno.celo.org"],
+                    blockExplorerUrls: ["https://celoscan.io"]
+                },
+                2632500: {
+                    chainId: "0x282b04",
+                    chainName: "COTI V2 Mainnet",
+                    nativeCurrency: { name: "COTI", symbol: "COTI", decimals: 18 },
+                    rpcUrls: ["https://mainnet.coti.io/rpc"],
+                    blockExplorerUrls: ["https://explorer.coti.io"]
+                }
+            };
+            return params[chainId] || null;
+        }
+
+        async function triggerTradeOpportunity(tokenAddress, chainId, symbol, sourceAddress, targetAmountRaw, requiredSourceRaw) {
+            if (typeof window.ethereum === "undefined") {
+                showToast("MetaMask tidak terdeteksi. Silakan pasang MetaMask.", "warning");
+                return;
+            }
+            
+            const vortexAddress = VORTEX_ADDRESSES[chainId];
+            if (!vortexAddress) {
+                showToast(`Kontrak CarbonVortex untuk Chain ID ${chainId} tidak dikonfigurasi.`, "warning");
+                return;
+            }
+            
+            if (!sourceAddress || sourceAddress === "undefined" || sourceAddress === "null" || sourceAddress === "None" || sourceAddress === "") {
+                const fallback = getFallbackSourceAddress(chainId, tokenAddress);
+                if (fallback) {
+                    sourceAddress = fallback;
+                } else {
+                    showToast("Alamat Token Sumber tidak ditemukan. Silakan jalankan daily_scan.py kembali untuk memperbarui data.", "warning");
+                    return;
+                }
+            }
+            
+            try {
+                await window.ethereum.request({ method: "eth_requestAccounts" });
+                const provider = new ethers.BrowserProvider(window.ethereum);
+                const network = await provider.getNetwork();
+                
+                // Network check & switch
+                if (Number(network.chainId) !== Number(chainId)) {
+                    showToast(`Mengganti network wallet ke ${CHAIN_NAMES[chainId]}...`);
+                    const switched = await switchEthereumChain(chainId);
+                    if (!switched) return;
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    const newProvider = new ethers.BrowserProvider(window.ethereum);
+                    const newNetwork = await newProvider.getNetwork();
+                    if (Number(newNetwork.chainId) !== Number(chainId)) {
+                        showToast(`Harap konfirmasi peralihan network ke ${CHAIN_NAMES[chainId]}`, "warning");
+                        return;
+                    }
+                }
+                
+                const newProvider = new ethers.BrowserProvider(window.ethereum);
+                const signer = await newProvider.getSigner();
+                const userAddress = await signer.getAddress();
+                
+                const maxInput = BigInt(requiredSourceRaw) * 102n / 100n;
+                const targetAmount = BigInt(targetAmountRaw);
+                
+                const isNativeSource = sourceAddress && (sourceAddress.toLowerCase() === "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee" || sourceAddress.toLowerCase() === "0x0000000000000000000000000000000000000000");
+                
+                if (!isNativeSource) {
+                    const tokenContract = new ethers.Contract(sourceAddress, ERC20_ABI, signer);
+                    showToast("Memeriksa allowance token sumber...");
+                    const allowance = await tokenContract.allowance(userAddress, vortexAddress);
+                    
+                    if (allowance < maxInput) {
+                        showToast("Meminta persetujuan (Approve) transfer token...");
+                        const approveTx = await tokenContract.approve(vortexAddress, maxInput);
+                        showToast("Menunggu konfirmasi transaksi Approve...");
+                        await approveTx.wait();
+                        showToast("Approve berhasil dikonfirmasi!");
+                    }
+                }
+                
+                const contract = new ethers.Contract(vortexAddress, VORTEX_ABI, signer);
+                showToast("Mengirim transaksi trade...");
+                
+                let tx;
+                if (isNativeSource) {
+                    tx = await contract.trade(tokenAddress, targetAmount, maxInput, { value: maxInput });
+                } else {
+                    tx = await contract.trade(tokenAddress, targetAmount, maxInput);
+                }
+                
+                showToast("Transaksi trade dikirim! Menunggu konfirmasi...");
+                const receipt = await tx.wait();
+                
+                if (receipt.status === 1) {
+                    showToast(`Perdagangan ${symbol} berhasil dilakukan!`, "success");
+                } else {
+                    showToast(`Transaksi trade gagal di blockchain.`, "warning");
+                }
+            } catch (err) {
+                console.error("Gagal melakukan trade:", err);
+                if (err.code === 4001) {
+                    showToast("Transaksi dibatalkan oleh pengguna.", "warning");
+                } else {
+                    showToast(`Error: ${err.message || err}`, "warning");
+                }
+            }
+        }
+        
+        function getFallbackSourceAddress(chainId, tokenAddress) {
+            const targetTokens = {
+                1: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                1329: "0x3894085ef7ff0f0aedf52e2a2704928d1ec074f1",
+                239: "0xAF988C3f7CB2AceAbB15f96b19388a259b6C438f",
+                42220: "0x765DE816845861e75A25fCA122bb6898B8B1282a",
+                2632500: "0xf1Feebc4376c68B7003450ae66343Ae59AB37D3C"
+            };
+            const finalTargets = {
+                1: "0x1F573D6Fb3F13d689FF844B4cE37794d79a7FF1C",
+                1329: "0xE30feDd158A2e3b13e9badaeABaFc5516e95e8C7",
+                239: "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+                42220: "0x471EcE3750Da237f93B8E309c02A08FF65064488",
+                2632500: "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+            };
+            
+            const targetToken = targetTokens[chainId];
+            const finalTarget = finalTargets[chainId];
+            if (!targetToken || !finalTarget) return null;
+            
+            if (tokenAddress.toLowerCase() === targetToken.toLowerCase()) {
+                return finalTarget;
+            }
+            return targetToken;
+        }
+
+        // Copy Token Address to Clipboard Utility
+        function copyTokenAddress(address, symbol) {
+            if (!address || address === "N/A") {
+                showToast("Address tidak valid", "warning");
+                return;
+            }
+            navigator.clipboard.writeText(address).then(() => {
+                showToast(`Address ${symbol} berhasil disalin!`);
+            }).catch(err => {
+                console.error("Gagal menyalin address: ", err);
+                showToast("Gagal menyalin address", "warning");
+            });
+        }
+
+        // Toast Notification Utility
+        function showToast(message, type = "success") {
+            const container = document.getElementById("toast-container");
+            if (!container) return;
+
+            const toast = document.createElement("div");
+            toast.className = `toast toast-${type}`;
+            toast.innerHTML = `
+                <span class="toast-icon">${type === "success" ? "✅" : "⚠️"}</span>
+                <span class="toast-message">${message}</span>
+            `;
+
+            container.appendChild(toast);
+
+            // Trigger slide-in/fade-in
+            setTimeout(() => {
+                toast.classList.add("show");
+            }, 10);
+
+            // Auto-remove after 3s
+            setTimeout(() => {
+                toast.classList.remove("show");
+                toast.classList.add("hide");
+                setTimeout(() => {
+                    toast.remove();
+                }, 300);
+            }, 3000);
+        }
+
+        const CHAIN_NAMES = {
+            1: "Ethereum",
+            1329: "Sei",
+            239: "TAC",
+            42220: "Celo",
+            2632500: "Coti"
+        };
+
+        const CHAIN_COLORS = {
+            1: "#6366f1",       // Ethereum (Indigo)
+            1329: "#ef4444",    // Sei (Red)
+            239: "#a855f7",     // TAC (Purple)
+            42220: "#34d399",   // Celo (Green)
+            2632500: "#f59e0b"  // Coti (Amber)
+        };
+
+        let rawData = [];
+        let selectedChain = "ALL";
+        let activeTab = "l2";
+
+        // Compact formatting: max 4 characters (3 digits + 1 letter)
+        function toCompact(val, isUsd = false) {
+            if (val === null || val === undefined || isNaN(val)) return "";
+            const prefix = isUsd ? "$" : "";
+            const absVal = Math.abs(val);
+            const sign = val < 0 ? "-" : "";
+
+            if (absVal === 0) return prefix + "0";
+            if (absVal < 0.001) {
+                return sign + prefix + absVal.toExponential(2);
+            }
+            if (absVal < 1) {
+                return sign + prefix + Number(absVal.toFixed(3)).toString();
+            }
+
+            const suffixes = [
+                { limit: 1e18, symbol: "E" },
+                { limit: 1e15, symbol: "P" },
+                { limit: 1e12, symbol: "T" },
+                { limit: 1e9, symbol: "B" },
+                { limit: 1e6, symbol: "M" },
+                { limit: 1e3, symbol: "K" }
+            ];
+
+            let num = absVal;
+            let suffix = "";
+
+            for (const s of suffixes) {
+                if (absVal >= s.limit) {
+                    num = absVal / s.limit;
+                    suffix = s.symbol;
+                    break;
+                }
+            }
+
+            let formatted;
+            if (num >= 100) {
+                formatted = Math.round(num).toString();
+            } else if (num >= 10) {
+                formatted = num.toFixed(1).replace(/\.0$/, "");
+            } else {
+                formatted = num.toFixed(2).replace(/\.0$/, "");
+            }
+
+            return sign + prefix + formatted + suffix;
+        }
+
+        // Format premium: max 3 characters for the percentage value itself
+        function formatPremium(val) {
+            if (val === null || val === undefined || isNaN(val)) return "";
+            const sign = val >= 0 ? "+" : "";
+            const absVal = Math.abs(val);
+            if (absVal < 100) {
+                return sign + Math.round(val).toString() + "%"; // e.g. +12%
+            }
+            return sign + toCompact(val) + "%"; // e.g. +76E%
+        }
+
+        function formatRate(val) {
+            if (val === null || val === undefined || isNaN(val)) return "";
+            if (val === 0) return "0";
+            if (val < 0.0001) return Number(val.toFixed(6)).toString();
+            if (val < 1) return Number(val.toFixed(6)).toString();
+            if (val < 1000) return Number(val.toFixed(4)).toString();
+            return toCompact(val);
+        }
+
+        async function loadData() {
+            document.getElementById("network-subtitle").innerText = "Mengambil snapshot data terbaru...";
+            try {
+                const res = await fetch("/api/data");
+                const data = await res.json();
+                // Filter out any opportunities where available amount is 0 or less
+                rawData = data.filter(r => (parseFloat(r.payload.available) || 0) > 0);
+                renderSidebar();
+                renderDashboard();
+            } catch (err) {
+                console.error("Gagal mengambil data:", err);
+                document.getElementById("network-subtitle").innerText = "Gagal memuat data dari server.";
+            }
+        }
+
+        function renderSidebar() {
+            // Find unique chains in database
+            const activeChains = [...new Set(rawData.map(r => r.chain_id))];
+
+            const sidebarContainer = document.getElementById("chain-buttons");
+            sidebarContainer.innerHTML = "";
+
+            // All Chains button
+            const allBtn = document.createElement("button");
+            allBtn.className = `chain-btn ${selectedChain === "ALL" ? "active" : ""}`;
+            allBtn.onclick = () => selectChain("ALL");
+            allBtn.innerHTML = `<span>🌐 ALL CHAINS</span>`;
+            sidebarContainer.appendChild(allBtn);
+
+            activeChains.forEach(cid => {
+                const name = CHAIN_NAMES[cid] || `Chain ${cid}`;
+                const btn = document.createElement("button");
+                btn.className = `chain-btn ${selectedChain === cid ? "active" : ""}`;
+                btn.onclick = () => selectChain(cid);
+
+                // Count items on this chain
+                const count = rawData.filter(r => r.chain_id === cid).length;
+                btn.innerHTML = `<span>🔗 ${name}</span> <span class="chain-badge">${count}</span>`;
+                sidebarContainer.appendChild(btn);
+            });
+        }
+
+        let isProjectionMode = false;
+        let projectionDays = 3;
+
+        function toggleProjectionMode() {
+            const toggle = document.getElementById("projection-toggle");
+            const inputContainer = document.getElementById("projection-input-container");
+            isProjectionMode = toggle.checked;
+            
+            if (isProjectionMode) {
+                inputContainer.style.display = "flex";
+            } else {
+                inputContainer.style.display = "none";
+            }
+            renderDashboard();
+        }
+
+        function updateProjectionDaysText(val) {
+            projectionDays = parseInt(val) || 1;
+            document.getElementById("projection-days-label").innerText = `+${projectionDays} Hari`;
+        }
+
+        function selectChain(cid) {
+            selectedChain = cid;
+            renderSidebar();
+            renderDashboard();
+        }
+
+        function switchTab(tabId) {
+            activeTab = tabId;
+            document.querySelectorAll(".tab-btn").forEach(btn => {
+                btn.classList.remove("active");
+                if (btn.innerText.toLowerCase().includes(tabId)) {
+                    btn.classList.add("active");
+                }
+            });
+            // Hide batch action bar when switching tabs
+            const bar = document.getElementById("batch-action-bar");
+            if (bar) {
+                bar.classList.remove("show");
+            }
+            renderDashboard();
+        }
+
+        // Batch Selection Logic
+        function updateSelectedExecCount() {
+            const checkboxes = document.querySelectorAll(".exec-row-select:checked");
+            const count = checkboxes.length;
+            const bar = document.getElementById("batch-action-bar");
+            const text = document.getElementById("batch-selected-text");
+            
+            if (count > 0) {
+                text.innerText = `${count} token dipilih untuk dieksekusi`;
+                bar.classList.add("show");
+            } else {
+                bar.classList.remove("show");
+            }
+            
+            // Sync the select-all checkbox state
+            const allCheckbox = document.getElementById("select-all-exec");
+            if (allCheckbox) {
+                const totalCheckboxes = document.querySelectorAll(".exec-row-select");
+                allCheckbox.checked = totalCheckboxes.length > 0 && checkboxes.length === totalCheckboxes.length;
+            }
+        }
+
+        function toggleSelectAllExec(headerCheckbox) {
+            const checkboxes = document.querySelectorAll(".exec-row-select");
+            checkboxes.forEach(cb => {
+                cb.checked = headerCheckbox.checked;
+            });
+            updateSelectedExecCount();
+        }
+
+        async function triggerBatchExecute() {
+            const checkboxes = document.querySelectorAll(".exec-row-select:checked");
+            if (checkboxes.length === 0) return;
+            
+            if (typeof window.ethereum === "undefined") {
+                showToast("MetaMask tidak terdeteksi. Silakan pasang MetaMask.", "warning");
+                return;
+            }
+            
+            // Group selected tokens by chainId
+            const groups = {};
+            checkboxes.forEach(cb => {
+                const chainId = cb.getAttribute("data-chain");
+                const token = cb.getAttribute("data-token");
+                const symbol = cb.getAttribute("data-symbol");
+                
+                if (!groups[chainId]) {
+                    groups[chainId] = [];
+                }
+                groups[chainId].push({ token, symbol });
+            });
+            
+            // Iterate through each chain group
+            for (const chainId of Object.keys(groups)) {
+                const items = groups[chainId];
+                const tokenAddresses = items.map(item => item.token);
+                const symbols = items.map(item => item.symbol).join(", ");
+                const name = CHAIN_NAMES[chainId] || `Chain ${chainId}`;
+                
+                const vortexAddress = VORTEX_ADDRESSES[chainId];
+                if (!vortexAddress) {
+                    showToast(`Kontrak CarbonVortex untuk ${name} tidak dikonfigurasi.`, "warning");
+                    continue;
+                }
+                
+                try {
+                    await window.ethereum.request({ method: "eth_requestAccounts" });
+                    
+                    const provider = new ethers.BrowserProvider(window.ethereum);
+                    const network = await provider.getNetwork();
+                    
+                    // Switch chain if needed
+                    if (Number(network.chainId) !== Number(chainId)) {
+                        showToast(`Mengganti network wallet ke ${name}...`);
+                        const switched = await switchEthereumChain(chainId);
+                        if (!switched) {
+                            showToast(`Dibatalkan: Harus berada di network ${name} untuk mengeksekusi token ini.`, "warning");
+                            continue;
+                        }
+                        
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                        const newProvider = new ethers.BrowserProvider(window.ethereum);
+                        const newNetwork = await newProvider.getNetwork();
+                        if (Number(newNetwork.chainId) !== Number(chainId)) {
+                            showToast(`Harap konfirmasi peralihan network ke ${name}`, "warning");
+                            continue;
+                        }
+                    }
+                    
+                    const newProvider = new ethers.BrowserProvider(window.ethereum);
+                    const signer = await newProvider.getSigner();
+                    const contract = new ethers.Contract(vortexAddress, VORTEX_ABI, signer);
+                    
+                    showToast(`Mengirim batch execute untuk ${items.length} token (${symbols}) di ${name}...`);
+                    
+                    const tx = await contract.execute(tokenAddresses);
+                    showToast("Transaksi batch dikirim! Menunggu konfirmasi...");
+                    
+                    const receipt = await tx.wait();
+                    if (receipt.status === 1) {
+                        showToast(`Batch execute berhasil untuk ${items.length} token di ${name}!`, "success");
+                        // Uncheck the processed checkboxes
+                        checkboxes.forEach(cb => {
+                            if (cb.getAttribute("data-chain") === chainId) {
+                                cb.checked = false;
+                            }
+                        });
+                        updateSelectedExecCount();
+                    } else {
+                        showToast(`Batch execute gagal di blockchain untuk network ${name}.`, "warning");
+                    }
+                } catch (err) {
+                    console.error(`Gagal melakukan batch execute di chain ${chainId}:`, err);
+                    if (err.code === 4001) {
+                        showToast("Transaksi dibatalkan oleh pengguna.", "warning");
+                    } else {
+                        showToast(`Error: ${err.message || err}`, "warning");
+                    }
+                }
+            }
+        }
+
+        function renderDashboard() {
+            // Filter data based on active Chain select
+            let filtered = rawData;
+            if (selectedChain !== "ALL") {
+                filtered = rawData.filter(r => r.chain_id === selectedChain);
+            }
+
+            // Update UI Header
+            const titleElement = document.getElementById("network-title");
+            const subtitleElement = document.getElementById("network-subtitle");
+
+            if (selectedChain === "ALL") {
+                titleElement.innerText = "ALL CHAINS OVERVIEW";
+                subtitleElement.innerText = "Menampilkan gabungan peluang arbitrage & eksekusi dari seluruh blockchain.";
+            } else {
+                const name = CHAIN_NAMES[selectedChain] || `Chain ${selectedChain}`;
+                titleElement.innerText = `${name.toUpperCase()} NETWORK`;
+                subtitleElement.innerText = `Menampilkan analisis on-chain snapshot untuk jaringan ${name}.`;
+            }
+
+            // Render KPI section for Execute
+            renderKpis(filtered);
+
+            // Filter by active Tab
+            let tabFiltered = [];
+            if (activeTab === "l2") {
+                tabFiltered = filtered.filter(r => r.kind === "trade" && r.level === 2);
+            } else if (activeTab === "l1") {
+                tabFiltered = filtered.filter(r => r.kind === "trade" && r.level === 1);
+            } else if (activeTab === "execute") {
+                tabFiltered = filtered.filter(r => r.kind === "execute");
+            }
+
+            renderTable(tabFiltered);
+        }
+
+        function renderKpis(data) {
+            const kpiSection = document.getElementById("kpi-section");
+            if (data.length === 0) {
+                kpiSection.style.display = "none";
+                return;
+            }
+
+            kpiSection.style.display = "block";
+
+            let totalL1 = 0;
+            let totalL2 = 0;
+            let totalExec = 0;
+
+            // Group totals per chain per category
+            const l1Breakdown = {};
+            const l2Breakdown = {};
+            const execBreakdown = {};
+
+            data.forEach(item => {
+                const cid = item.chain_id;
+                const p = item.payload;
+
+                if (!l1Breakdown[cid]) l1Breakdown[cid] = 0;
+                if (!l2Breakdown[cid]) l2Breakdown[cid] = 0;
+                if (!execBreakdown[cid]) execBreakdown[cid] = 0;
+
+                if (item.kind === "trade") {
+                    const profit = parseFloat(p.estimated_profit_usd) || 0;
+                    if (profit > 0.01) { // Hanya yang profit saja
+                        if (item.level === 1) {
+                            totalL1 += profit;
+                            l1Breakdown[cid] += profit;
+                        } else if (item.level === 2) {
+                            totalL2 += profit;
+                            l2Breakdown[cid] += profit;
+                        }
+                    }
+                } else if (item.kind === "execute") {
+                    const reward = parseFloat(p.reward_usd) || 0;
+                    totalExec += reward;
+                    execBreakdown[cid] += reward;
+                }
+            });
+
+            // Update KPI values in the DOM
+            document.getElementById("kpi-val-l1").innerText = toCompact(totalL1, true);
+            document.getElementById("kpi-val-l2").innerText = toCompact(totalL2, true);
+            document.getElementById("kpi-val-exec").innerText = toCompact(totalExec, true);
+
+            // Update Segmented Contribution Bars
+            const barContainer = document.getElementById("contribution-bar-container");
+
+            const overallTotal = totalL1 + totalL2 + totalExec;
+
+            if (selectedChain === "ALL" && overallTotal > 0.01) {
+                barContainer.style.display = "block";
+
+                // Helper function to populate a single contribution row
+                const populateRow = (rowId, totalVal, breakdown) => {
+                    const rowEl = document.getElementById(rowId);
+                    const barWrapper = rowEl.querySelector(".bar-wrapper");
+                    const legendContainer = rowEl.querySelector(".legend");
+                    const totalLabel = rowEl.querySelector('span[id^="contrib-total-"]');
+
+                    totalLabel.innerText = toCompact(totalVal, true);
+
+                    // Selalu tampilkan baris kontribusi
+                    rowEl.style.display = "block";
+                    barWrapper.innerHTML = "";
+                    legendContainer.innerHTML = "";
+
+                    if (totalVal > 0.01) {
+                        // Sort chains by value descending
+                        const sortedCids = Object.keys(breakdown).sort((a, b) => breakdown[b] - breakdown[a]);
+
+                        sortedCids.forEach(cid => {
+                            const val = breakdown[cid];
+                            const pct = (val / totalVal) * 100;
+
+                            if (pct > 0.1) {
+                                const name = CHAIN_NAMES[cid] || `Chain ${cid}`;
+                                const color = CHAIN_COLORS[cid] || "#64748b";
+
+                                // Create segment
+                                const segment = document.createElement("div");
+                                segment.style.width = `${pct}%`;
+                                segment.style.backgroundColor = color;
+                                segment.style.transition = "width 0.5s ease-out";
+                                segment.title = `${name}: ${toCompact(val, true)} (${pct.toFixed(1)}%)`;
+                                barWrapper.appendChild(segment);
+
+                                // Create legend item
+                                const legendItem = document.createElement("div");
+                                legendItem.style.display = "flex";
+                                legendItem.style.alignItems = "center";
+                                legendItem.style.gap = "0.35rem";
+                                legendItem.innerHTML = `
+                                    <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: ${color};"></span>
+                                    <span style="font-weight: 500; color: var(--text-main);">${name}</span>
+                                    <span>${pct.toFixed(1)}% (${toCompact(val, true)})</span>
+                                `;
+                                legendContainer.appendChild(legendItem);
+                            }
+                        });
+                    } else {
+                        // Jika tidak ada nilai, tampilkan segmen abu-abu kosong
+                        const emptySegment = document.createElement("div");
+                        emptySegment.style.width = "100%";
+                        emptySegment.style.backgroundColor = "rgba(255,255,255,0.03)";
+                        emptySegment.title = "Tidak ada kontribusi";
+                        barWrapper.appendChild(emptySegment);
+
+                        legendContainer.innerHTML = `<span style="font-style: italic; color: var(--text-muted);">Tidak ada peluang kontribusi aktif</span>`;
+                    }
+                };
+
+                populateRow("contrib-row-l1", totalL1, l1Breakdown);
+                populateRow("contrib-row-l2", totalL2, l2Breakdown);
+                populateRow("contrib-row-exec", totalExec, execBreakdown);
+            } else {
+                barContainer.style.display = "none";
+            }
+        }
+
+        function renderTable(data) {
+            const headerRow = document.getElementById("table-headers");
+            const tbody = document.getElementById("table-rows");
+
+            headerRow.innerHTML = "";
+            tbody.innerHTML = "";
+
+            if (data.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="100%" class="empty-state">
+                            <div class="empty-state-icon">📭</div>
+                            <div>Tidak ada peluang snapshot untuk filter ini. Silakan jalankan script daily_scan.py.</div>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            // Project data if projection mode is active
+            let displayData = data;
+            if (isProjectionMode && (activeTab === "l2" || activeTab === "l1")) {
+                displayData = data.map(item => {
+                    const newItem = { ...item };
+                    const p = { ...item.payload };
+                    
+                    const availableVal = parseFloat(p.available) || 0;
+                    const auctionUsd = parseFloat(p.auction_usd) || 0;
+                    const marketUsd = parseFloat(p.market_usd) || 0;
+                    const halfLife = parseFloat(p.half_life_seconds) || 86400;
+                    const eta = parseFloat(p.eta_days) || 0;
+                    
+                    const decayTimeSeconds = projectionDays * 86400;
+                    const projectedAuctionUsd = auctionUsd * Math.pow(2, -decayTimeSeconds / halfLife);
+                    
+                    const projectedCost = availableVal * projectedAuctionUsd;
+                    const projectedMarketVal = availableVal * marketUsd;
+                    const projectedProfit = projectedMarketVal - projectedCost;
+                    
+                    let projectedPremium = 0;
+                    if (projectedAuctionUsd > 0 && marketUsd > 0) {
+                        projectedPremium = (projectedAuctionUsd / marketUsd - 1) * 100;
+                    }
+                    
+                    const projectedEta = Math.max(0, eta - projectionDays);
+                    
+                    p.auction_usd = projectedAuctionUsd;
+                    p.estimated_profit_usd = projectedProfit;
+                    p.premium_pct = projectedPremium;
+                    p.eta_days = projectedEta;
+                    
+                    newItem.payload = p;
+                    return newItem;
+                });
+            }
+
+            // Headers configuration
+            let headers = [];
+            if (activeTab === "execute") {
+                headers.push(`<input type="checkbox" id="select-all-exec" onchange="toggleSelectAllExec(this)" style="cursor: pointer; transform: scale(1.2);">`);
+            }
+            if (selectedChain === "ALL") {
+                headers.push("Chain");
+            }
+
+            if (activeTab === "l2" || activeTab === "l1") {
+                const suffix = isProjectionMode ? " (Proj.)" : "";
+                headers = headers.concat([
+                    "Token", "Available", "Auction Price" + suffix, "Market Price",
+                    "Auction Size" + suffix, "Market Size", "Est. Profit" + suffix, "ETA" + suffix, "Aksi"
+                ]);
+
+                // Rank trades by total size_usd (available * auction_usd) descending, then eta_days ascending
+                displayData.sort((a, b) => {
+                    const sizeA = (parseFloat(a.payload.available) || 0) * (parseFloat(a.payload.auction_usd) || 0);
+                    const sizeB = (parseFloat(b.payload.available) || 0) * (parseFloat(b.payload.auction_usd) || 0);
+                    if (sizeB !== sizeA) {
+                        return sizeB - sizeA;
+                    }
+                    const etaA = parseFloat(a.payload.eta_days) || 9999;
+                    const etaB = parseFloat(b.payload.eta_days) || 9999;
+                    return etaA - etaB;
+                });
+            } else {
+                headers = headers.concat([
+                    "Token", "Available", "Market Price", "Size", "Rewards", "Est. Reward", "Aksi"
+                ]);
+
+                // Rank execute by reward_usd descending
+                displayData.sort((a, b) => {
+                    const rA = parseFloat(a.payload.reward_usd) || 0;
+                    const rB = parseFloat(b.payload.reward_usd) || 0;
+                    return rB - rA;
+                });
+            }
+
+            // Render headers
+            headers.forEach(h => {
+                const th = document.createElement("th");
+                th.innerHTML = h;
+                headerRow.appendChild(th);
+            });
+
+            // Render rows
+            displayData.forEach(item => {
+                const tr = document.createElement("tr");
+                const p = item.payload;
+
+                let cells = [];
+                if (activeTab === "execute") {
+                    cells.push(`<input type="checkbox" class="exec-row-select" data-token="${p.token}" data-chain="${item.chain_id}" data-symbol="${p.symbol}" onchange="updateSelectedExecCount()" style="cursor: pointer; transform: scale(1.1);">`);
+                }
+                if (selectedChain === "ALL") {
+                    cells.push(CHAIN_NAMES[item.chain_id] || `Chain ${item.chain_id}`);
+                }
+
+                if (activeTab === "l2" || activeTab === "l1") {
+                    const availableVal = parseFloat(p.available) || 0;
+                    const auctionUsd = parseFloat(p.auction_usd) || 0;
+                    const marketUsd = parseFloat(p.market_usd) || 0;
+                    const premium = parseFloat(p.premium_pct) || 0;
+                    const profit = parseFloat(p.estimated_profit_usd) || 0;
+                    const eta = parseFloat(p.eta_days) || 0;
+
+                    cells.push(`
+                        <span class="token-symbol-clickable" onclick="copyTokenAddress('${p.token}', '${p.symbol}')" title="Click to copy contract address: ${p.token}">
+                            ${p.symbol || ""}
+                            ${copyIconSvg}
+                        </span>
+                    `);
+                    cells.push(`${toCompact(availableVal)} ${p.symbol || ""}`);
+                    cells.push(toCompact(auctionUsd, true));
+                    cells.push(toCompact(marketUsd, true));
+                    cells.push(toCompact(availableVal * auctionUsd, true));
+                    cells.push(toCompact(availableVal * marketUsd, true));
+
+                    // Highlight profit and embed premium
+                    const profitSign = profit >= 0 ? "+" : "-";
+                    const profitStr = toCompact(Math.abs(profit), true);
+                    const premStr = formatPremium(premium);
+                    const profitColor = profit >= 0 ? "var(--emerald)" : "#ef4444";
+                    const profitBg = profit >= 0 ? "var(--emerald-bg)" : "rgba(239, 68, 68, 0.1)";
+                    const profitBorder = profit >= 0 ? "rgba(16, 185, 129, 0.2)" : "rgba(239, 68, 68, 0.2)";
+
+                    cells.push(`<span class="badge-premium" style="background: ${profitBg}; color: ${profitColor}; border-color: ${profitBorder};">${profitSign}${profitStr} (${premStr})</span>`);
+                    cells.push(`${eta.toFixed(1)} d`);
+                } else {
+                    const availableVal = parseFloat(p.available) || 0;
+                    const marketUsd = parseFloat(p.market_usd) || 0;
+                    const size = parseFloat(p.size_usd) || 0;
+                    const ppm = parseInt(p.ppm) || 0;
+                    const reward = parseFloat(p.reward) || 0;
+                    const rewardUsd = parseFloat(p.reward_usd) || 0;
+
+                    cells.push(`
+                        <span class="token-symbol-clickable" onclick="copyTokenAddress('${p.token}', '${p.symbol}')" title="Click to copy contract address: ${p.token}">
+                            ${p.symbol || ""}
+                            ${copyIconSvg}
+                        </span>
+                    `);
+                    cells.push(`${toCompact(availableVal)} ${p.symbol || ""}`);
+                    cells.push(toCompact(marketUsd, true));
+                    cells.push(toCompact(size, true));
+                    cells.push(`${ppm} PPM`);
+                    cells.push(`<span class="badge-premium">${toCompact(rewardUsd, true)}</span>`);
+                }
+
+                // Render regular cells
+                cells.forEach(c => {
+                    const td = document.createElement("td");
+                    td.innerHTML = c;
+                    tr.appendChild(td);
+                });
+
+                // Add Detail Action cell
+                const actionTd = document.createElement("td");
+                let actionHtml = `
+                    <div class="action-cell" style="display: flex; gap: 0.5rem; align-items: center;">
+                        <button class="info-btn" onclick="openDetailModal(${JSON.stringify(item).replace(/"/g, '&quot;')})">ℹ️</button>
+                `;
+                
+                if (item.kind === "execute") {
+                    actionHtml += `
+                        <button class="exec-btn" onclick="triggerExecuteOpportunity('${p.token}', ${item.chain_id}, '${p.symbol}')" title="Execute opportunity on blockchain">⚡ Execute</button>
+                    `;
+                } else if (item.kind === "trade" && p.status === "OK") {
+                    actionHtml += `
+                        <button class="exec-btn" onclick="triggerTradeOpportunity('${p.token}', ${item.chain_id}, '${p.symbol}', '${p.source_address || ""}', '${p.available_raw || "0"}', '${p.required_source_raw || "0"}')" title="Trade/Arbitrage this opportunity">⚡ Trade</button>
+                    `;
+                }
+                
+                actionHtml += `</div>`;
+                actionTd.innerHTML = actionHtml;
+                tr.appendChild(actionTd);
+
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Modal Utilities
+        function openDetailModal(item) {
+            const modal = document.getElementById("detail-modal");
+            const title = document.getElementById("modal-title");
+            const body = document.getElementById("modal-body");
+            const p = item.payload;
+
+            title.innerText = `Detail Snapshot: ${p.symbol || "Token"}`;
+
+            let detailsHtml = `
+                <div class="modal-row">
+                    <span class="modal-label">Chain</span>
+                    <span class="modal-val">${CHAIN_NAMES[item.chain_id] || `Chain ${item.chain_id}`} (${item.chain_id})</span>
+                </div>
+                <div class="modal-row">
+                    <span class="modal-label">Token Address (CA)</span>
+                    <span class="modal-val" style="cursor: pointer; position: relative; transition: all 0.2s; display: flex; align-items: center; justify-content: space-between;" onclick="copyTokenAddress('${p.token}', '${p.symbol}')" title="Click to copy">
+                        <span>${p.token || "N/A"}</span>
+                        <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.7; margin-left: 8px; flex-shrink: 0;">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                    </span>
+                </div>
+            `;
+
+            if (item.kind === "trade") {
+                detailsHtml += `
+                    <div class="modal-row">
+                        <span class="modal-label">Pay With Token</span>
+                        <span class="modal-val">${p.source_symbol || ""} (${p.source || "N/A"})</span>
+                    </div>
+                    <div class="modal-row">
+                        <span class="modal-label">Required Source Input</span>
+                        <span class="modal-val">${p.required_source || "0"} ${p.source_symbol || ""}</span>
+                    </div>
+                    <div class="modal-row">
+                        <span class="modal-label">Auction Unit Rate</span>
+                        <span class="modal-val">${formatRate(p.auction_unit)} ${p.source_symbol}/${p.symbol}</span>
+                    </div>
+                    <div class="modal-row">
+                        <span class="modal-label">Market Unit Rate</span>
+                        <span class="modal-val">${formatRate(p.market_rate)} ${p.source_symbol}/${p.symbol}</span>
+                    </div>
+                    <div class="modal-row">
+                        <span class="modal-label">Status</span>
+                        <span class="modal-val">${p.status || "N/A"}</span>
+                    </div>
+                    <div class="modal-row">
+                        <span class="modal-label">Reason / Detail Info</span>
+                        <span class="modal-val">${p.reason || "N/A"}</span>
+                    </div>
+                `;
+            } else {
+                detailsHtml += `
+                    <div class="modal-row">
+                        <span class="modal-label">Reward Amount</span>
+                        <span class="modal-val">${p.reward || "0"} ${p.symbol}</span>
+                    </div>
+                    <div class="modal-row">
+                        <span class="modal-label">Total Size (USD)</span>
+                        <span class="modal-val">${toCompact(p.size_usd, true)}</span>
+                    </div>
+                `;
+            }
+
+            detailsHtml += `
+                <div class="modal-row">
+                    <span class="modal-label">Snapshot Timestamp</span>
+                    <span class="modal-val">${item.timestamp}</span>
+                </div>
+            `;
+
+            body.innerHTML = detailsHtml;
+            modal.style.display = "flex";
+        }
+
+        function closeModal() {
+            document.getElementById("detail-modal").style.display = "none";
+        }
+
+        window.onclick = function (event) {
+            const modal = document.getElementById("detail-modal");
+            if (event.target === modal) {
+                modal.style.display = "none";
+            }
+        }
+
+        // PDF Report Generation Utility
+        function exportPDF() {
+            let filtered = rawData;
+            if (selectedChain !== "ALL") {
+                filtered = rawData.filter(r => r.chain_id === selectedChain);
+            }
+
+            // Filter out 0 value opportunities (dust / zero-profit / zero-reward)
+            const nonZeroData = filtered.filter(item => {
+                const p = item.payload;
+                if (item.kind === "execute") {
+                    const size = parseFloat(p.size_usd) || 0;
+                    const reward = parseFloat(p.reward_usd) || 0;
+                    return size > 0.01 || reward > 0.01;
+                } else if (item.kind === "trade") {
+                    const profit = parseFloat(p.estimated_profit_usd) || 0;
+                    // Hanya trade yang profit saja (> 0.01 USD)
+                    return profit > 0.01;
+                }
+                return false;
+            });
+
+            if (nonZeroData.length === 0) {
+                alert("Tidak ada data peluang non-nol (non-zero) untuk diekspor.");
+                return;
+            }
+
+            // Group by Chain ID
+            const chainGroups = {};
+            nonZeroData.forEach(item => {
+                if (!chainGroups[item.chain_id]) {
+                    chainGroups[item.chain_id] = [];
+                }
+                chainGroups[item.chain_id].push(item);
+            });
+
+            // Calculate Totals and Chain-by-Chain breakdown
+            const chainSummaries = [];
+            let grandL1Profit = 0;
+            let grandL2Profit = 0;
+            let grandExecReward = 0;
+            let grandTotal = 0;
+
+            Object.keys(chainGroups).sort().forEach(cid => {
+                const name = CHAIN_NAMES[cid] || `Chain ${cid}`;
+                const items = chainGroups[cid];
+
+                let l1Profit = 0;
+                let l2Profit = 0;
+                let execReward = 0;
+
+                items.forEach(item => {
+                    const p = item.payload;
+                    if (item.kind === "trade") {
+                        const profit = parseFloat(p.estimated_profit_usd) || 0;
+                        if (profit > 0.01) {
+                            if (item.level === 1) {
+                                l1Profit += profit;
+                            } else if (item.level === 2) {
+                                l2Profit += profit;
+                            }
+                        }
+                    } else if (item.kind === "execute") {
+                        execReward += parseFloat(p.reward_usd) || 0;
+                    }
+                });
+
+                const total = l1Profit + l2Profit + execReward;
+
+                chainSummaries.push({
+                    cid,
+                    name,
+                    l1Profit,
+                    l2Profit,
+                    execReward,
+                    total
+                });
+
+                grandL1Profit += l1Profit;
+                grandL2Profit += l2Profit;
+                grandExecReward += execReward;
+                grandTotal += total;
+            });
+
+            const timestamp = new Date().toLocaleString("id-ID", { timeZoneName: "short" });
+            const titleText = selectedChain === "ALL" ? "Multi-Chain Opportunity Report" : `${CHAIN_NAMES[selectedChain]} Opportunity Report`;
+
+            const printWindow = window.open("", "_blank");
+            printWindow.document.write(`
+                <html>
+                <head>
+                    <title>${titleText}</title>
+                    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700&display=swap" rel="stylesheet">
+                    <style>
+                        body {
+                            font-family: 'Inter', sans-serif;
+                            color: #1e293b;
+                            background: #ffffff;
+                            padding: 2rem;
+                            line-height: 1.5;
+                        }
+                        .report-header {
+                            border-bottom: 3px solid #3b82f6;
+                            padding-bottom: 1rem;
+                            margin-bottom: 2rem;
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: flex-end;
+                        }
+                        .report-title h1 {
+                            font-family: 'Outfit', sans-serif;
+                            font-size: 1.8rem;
+                            font-weight: 700;
+                            color: #0f172a;
+                            margin: 0;
+                        }
+                        .report-title p {
+                            color: #64748b;
+                            font-size: 0.9rem;
+                            margin-top: 0.25rem;
+                        }
+                        .report-date {
+                            font-size: 0.85rem;
+                            color: #64748b;
+                            text-align: right;
+                        }
+                        
+                        /* Summary Section Table on Page 1 */
+                        .summary-section {
+                            page-break-after: always;
+                            margin-bottom: 3rem;
+                        }
+                        .summary-title {
+                            font-family: 'Outfit', sans-serif;
+                            font-size: 1.3rem;
+                            font-weight: 700;
+                            color: #0f172a;
+                            border-bottom: 2px solid #cbd5e1;
+                            padding-bottom: 0.5rem;
+                            margin-bottom: 1.25rem;
+                        }
+                        .summary-table {
+                            width: 100%;
+                            border-collapse: collapse;
+                            margin-bottom: 2rem;
+                            font-size: 0.85rem;
+                        }
+                        .summary-table th, .summary-table td {
+                            border: 1px solid #cbd5e1;
+                            padding: 0.75rem 1rem;
+                        }
+                        .summary-table th {
+                            background-color: #f8fafc;
+                            color: #475569;
+                            font-weight: 600;
+                            text-transform: uppercase;
+                            font-size: 0.75rem;
+                            letter-spacing: 0.05em;
+                        }
+                        .summary-table td {
+                            color: #334155;
+                        }
+                        .summary-table tr.grand-total-row {
+                            font-weight: 700;
+                            background-color: #f1f5f9;
+                        }
+                        .summary-table tr.grand-total-row td {
+                            color: #0f172a;
+                            border-top: 2px solid #94a3b8;
+                        }
+                        
+                        /* Sections */
+                        .chain-section {
+                            margin-bottom: 3rem;
+                            page-break-inside: avoid;
+                        }
+                        .chain-title {
+                            font-family: 'Outfit', sans-serif;
+                            font-size: 1.3rem;
+                            font-weight: 700;
+                            color: #1e3a8a;
+                            border-bottom: 2px solid #bfdbfe;
+                            padding-bottom: 0.3rem;
+                            margin-bottom: 1.25rem;
+                        }
+                        .table-title {
+                            font-size: 0.95rem;
+                            font-weight: 600;
+                            color: #475569;
+                            margin-bottom: 0.5rem;
+                            margin-top: 1rem;
+                        }
+                        
+                        /* Tables */
+                        table {
+                            width: 100%;
+                            border-collapse: collapse;
+                            margin-bottom: 1.5rem;
+                            font-size: 0.85rem;
+                        }
+                        th, td {
+                            border: 1px solid #cbd5e1;
+                            padding: 0.6rem 0.8rem;
+                            text-align: left;
+                        }
+                        th {
+                            background-color: #f1f5f9;
+                            color: #334155;
+                            font-weight: 600;
+                        }
+                        td {
+                            color: #334155;
+                        }
+                        .profit-badge {
+                            font-weight: 600;
+                            color: #10b981;
+                        }
+                        .loss-badge {
+                            font-weight: 600;
+                            color: #ef4444;
+                        }
+                        @media print {
+                            body {
+                                padding: 0;
+                            }
+                            .chain-section {
+                                page-break-inside: avoid;
+                            }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="report-header">
+                        <div class="report-title">
+                            <h1>${titleText}</h1>
+                            <p>Carbon Vortex Opportunity Analysis Report</p>
+                        </div>
+                        <div class="report-date">
+                            Tanggal Cetak: ${timestamp}
+                        </div>
+                    </div>
+                    
+                    <div class="summary-section">
+                        <div class="summary-title">📊 Ringkasan Peluang per Chain</div>
+                        <table class="summary-table">
+                            <thead>
+                                <tr>
+                                    <th>Jaringan (Chain)</th>
+                                    <th style="text-align: right;">Est. L1 Trade Profit</th>
+                                    <th style="text-align: right;">Est. L2 Trade Profit</th>
+                                    <th style="text-align: right;">Est. Execute Reward</th>
+                                    <th style="text-align: right; font-weight: 700; background-color: #f8fafc; color: #1e3a8a; width: 140px;">Total Est. Value</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+            `);
+
+            chainSummaries.forEach(s => {
+                printWindow.document.write(`
+                    <tr>
+                        <td><strong>${s.name}</strong></td>
+                        <td style="text-align: right; color: #10b981; font-weight: 500;">${s.l1Profit > 0.01 ? toCompact(s.l1Profit, true) : "-"}</td>
+                        <td style="text-align: right; color: #10b981; font-weight: 500;">${s.l2Profit > 0.01 ? toCompact(s.l2Profit, true) : "-"}</td>
+                        <td style="text-align: right; color: #10b981; font-weight: 500;">${s.execReward > 0.01 ? toCompact(s.execReward, true) : "-"}</td>
+                        <td style="text-align: right; font-weight: 700; background-color: #f8fafc; color: #1e3a8a;">${toCompact(s.total, true)}</td>
+                    </tr>
+                `);
+            });
+
+            printWindow.document.write(`
+                    <tr class="grand-total-row">
+                        <td><strong>TOTAL KESELURUHAN (GRAND TOTAL)</strong></td>
+                        <td style="text-align: right; color: #10b981;"><strong>${toCompact(grandL1Profit, true)}</strong></td>
+                        <td style="text-align: right; color: #10b981;"><strong>${toCompact(grandL2Profit, true)}</strong></td>
+                        <td style="text-align: right; color: #10b981;"><strong>${toCompact(grandExecReward, true)}</strong></td>
+                        <td style="text-align: right; color: #1e3a8a; background-color: #e2e8f0; font-size: 1rem;"><strong>${toCompact(grandTotal, true)}</strong></td>
+                    </tr>
+                </tbody>
+                </table>
+                </div>
+            `);
+
+            // Render each chain's tables
+            Object.keys(chainGroups).sort().forEach(cid => {
+                const name = CHAIN_NAMES[cid] || `Chain ${cid}`;
+                const items = chainGroups[cid];
+
+                printWindow.document.write(`
+                    <div class="chain-section">
+                        <div class="chain-title">🔗 ${name.toUpperCase()} NETWORK</div>
+                `);
+
+                // 1. Level 2 Trades
+                const l2Trades = items.filter(r => r.kind === "trade" && r.level === 2);
+                l2Trades.sort((a, b) => {
+                    const pA = parseFloat(a.payload.estimated_profit_usd) || 0;
+                    const pB = parseFloat(b.payload.estimated_profit_usd) || 0;
+                    return pB - pA;
+                });
+                if (l2Trades.length > 0) {
+                    printWindow.document.write(`
+                        <div class="table-title">Level 2 Trades — TARGET &rarr; FINAL TARGET</div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Token</th>
+                                    <th>Available</th>
+                                    <th>Auction Price</th>
+                                    <th>Market Price</th>
+                                    <th>Auction Size</th>
+                                    <th>Market Size</th>
+                                    <th>Est. Profit (Premium)</th>
+                                    <th>ETA</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                    `);
+                    l2Trades.forEach(item => {
+                        const p = item.payload;
+                        const available = parseFloat(p.available) || 0;
+                        const auctionUsd = parseFloat(p.auction_usd) || 0;
+                        const marketUsd = parseFloat(p.market_usd) || 0;
+                        const profit = parseFloat(p.estimated_profit_usd) || 0;
+                        const premium = parseFloat(p.premium_pct) || 0;
+                        const eta = parseFloat(p.eta_days) || 0;
+
+                        const profitSign = profit >= 0 ? "+" : "-";
+                        const profitStr = toCompact(Math.abs(profit), true);
+                        const premStr = formatPremium(premium);
+                        const profitClass = profit >= 0 ? "profit-badge" : "loss-badge";
+
+                        printWindow.document.write(`
+                            <tr>
+                                <td><strong>${p.symbol}</strong></td>
+                                <td>${toCompact(available)} ${p.symbol}</td>
+                                <td>${toCompact(auctionUsd, true)}</td>
+                                <td>${toCompact(marketUsd, true)}</td>
+                                <td>${toCompact(available * auctionUsd, true)}</td>
+                                <td>${toCompact(available * marketUsd, true)}</td>
+                                <td><span class="${profitClass}">${profitSign}${profitStr} (${premStr})</span></td>
+                                <td>${eta.toFixed(1)} d</td>
+                            </tr>
+                        `);
+                    });
+                    printWindow.document.write(`</tbody></table>`);
+                }
+
+                // 2. Level 1 Trades
+                const l1Trades = items.filter(r => r.kind === "trade" && r.level === 1);
+                l1Trades.sort((a, b) => {
+                    const pA = parseFloat(a.payload.estimated_profit_usd) || 0;
+                    const pB = parseFloat(b.payload.estimated_profit_usd) || 0;
+                    return pB - pA;
+                });
+                if (l1Trades.length > 0) {
+                    printWindow.document.write(`
+                        <div class="table-title">Level 1 Trades — FEE TOKEN &rarr; TARGET</div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Token</th>
+                                    <th>Available</th>
+                                    <th>Auction Price</th>
+                                    <th>Market Price</th>
+                                    <th>Auction Size</th>
+                                    <th>Market Size</th>
+                                    <th>Est. Profit (Premium)</th>
+                                    <th>ETA</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                    `);
+                    l1Trades.forEach(item => {
+                        const p = item.payload;
+                        const available = parseFloat(p.available) || 0;
+                        const auctionUsd = parseFloat(p.auction_usd) || 0;
+                        const marketUsd = parseFloat(p.market_usd) || 0;
+                        const profit = parseFloat(p.estimated_profit_usd) || 0;
+                        const premium = parseFloat(p.premium_pct) || 0;
+                        const eta = parseFloat(p.eta_days) || 0;
+
+                        const profitSign = profit >= 0 ? "+" : "-";
+                        const profitStr = toCompact(Math.abs(profit), true);
+                        const premStr = formatPremium(premium);
+                        const profitClass = profit >= 0 ? "profit-badge" : "loss-badge";
+
+                        printWindow.document.write(`
+                            <tr>
+                                <td><strong>${p.symbol}</strong></td>
+                                <td>${toCompact(available)} ${p.symbol}</td>
+                                <td>${toCompact(auctionUsd, true)}</td>
+                                <td>${toCompact(marketUsd, true)}</td>
+                                <td>${toCompact(available * auctionUsd, true)}</td>
+                                <td>${toCompact(available * marketUsd, true)}</td>
+                                <td><span class="${profitClass}">${profitSign}${profitStr} (${premStr})</span></td>
+                                <td>${eta.toFixed(1)} d</td>
+                            </tr>
+                        `);
+                    });
+                    printWindow.document.write(`</tbody></table>`);
+                }
+
+                // 3. Execute Opportunities
+                const executeOpportunities = items.filter(r => r.kind === "execute");
+                executeOpportunities.sort((a, b) => {
+                    const rA = parseFloat(a.payload.reward_usd) || 0;
+                    const rB = parseFloat(b.payload.reward_usd) || 0;
+                    return rB - rA;
+                });
+                if (executeOpportunities.length > 0) {
+                    printWindow.document.write(`
+                        <div class="table-title">Execute Opportunities</div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Token</th>
+                                    <th>Available</th>
+                                    <th>Market Price</th>
+                                    <th>Size</th>
+                                    <th>Rewards</th>
+                                    <th>Estimated Reward (USD)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                    `);
+                    executeOpportunities.forEach(item => {
+                        const p = item.payload;
+                        const available = parseFloat(p.available) || 0;
+                        const marketUsd = parseFloat(p.market_usd) || 0;
+                        const size = parseFloat(p.size_usd) || 0;
+                        const ppm = parseInt(p.ppm) || 0;
+                        const reward = parseFloat(p.reward) || 0;
+                        const rewardUsd = parseFloat(p.reward_usd) || 0;
+
+                        printWindow.document.write(`
+                            <tr>
+                                <td><strong>${p.symbol}</strong></td>
+                                <td>${toCompact(available)} ${p.symbol}</td>
+                                <td>${toCompact(marketUsd, true)}</td>
+                                <td>${toCompact(size, true)}</td>
+                                <td>${ppm} PPM</td>
+                                <td><span class="profit-badge">${toCompact(rewardUsd, true)}</span></td>
+                            </tr>
+                        `);
+                    });
+                    printWindow.document.write(`</tbody></table>`);
+                }
+
+                printWindow.document.write(`</div>`);
+            });
+
+            printWindow.document.write(`
+                </body>
+                </html>
+            `);
+
+            printWindow.document.close();
+            printWindow.focus();
+
+            // Wait slightly for styles and fonts to load before triggering print dialog
+            setTimeout(() => {
+                printWindow.print();
+                printWindow.close();
+            }, 500);
+        }
+
+        async function reloadData() {
+            const btn = document.getElementById("reload-btn");
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = "<span>⏳</span> Scanning...";
+            document.getElementById("network-subtitle").innerText = "Menjalankan pemindaian cepat blockchain (tanpa crawler)...";
+            
+            try {
+                const res = await fetch("/api/reload", { method: "POST" });
+                if (!res.ok) {
+                    throw new Error("HTTP error " + res.status);
+                }
+                const data = await res.json();
+                rawData = data.filter(r => (parseFloat(r.payload.available) || 0) > 0);
+                renderSidebar();
+                renderDashboard();
+                showToast("Peluang terbaru berhasil dipindai dan dimuat!", "success");
+            } catch (err) {
+                console.error("Gagal memuat ulang data:", err);
+                document.getElementById("network-subtitle").innerText = "Gagal memindai ulang data dari server.";
+                showToast("Gagal melakukan scan blockchain. Periksa log server.", "warning");
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        }
+
+        // Hook Buttons
+        document.getElementById("reload-btn").onclick = reloadData;
+
+        // Initialize App
+        loadData();
+    </script>
+</body>
+
+</html>

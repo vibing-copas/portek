@@ -1,0 +1,10 @@
+{
+  "name": "carbon-vortex-tracker-price-feed",
+  "version": "1.0.0",
+  "description": "Price feed bridge using @bancor/carbon-sdk",
+  "main": "scripts/get_carbon_prices.js",
+  "dependencies": {
+    "@bancor/carbon-sdk": "latest",
+    "ethers": "^6.13.0"
+  }
+}

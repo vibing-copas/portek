@@ -1,0 +1,43 @@
+chains:
+  ethereum:
+    chain_id: 1
+    rpc_env: ETH_RPC_URL
+    public_rpc: "https://rpc.ankr.com/eth"
+    average_block_time: 12.0
+    carbon_controller: "0xC537e898CD774e2dCBa3B14Ea6f34C93d5eA45e1"
+    carbon_vortex: "0xD053Dcd7037AF7204cecE544Ea9F227824d79801"
+  sei:
+    chain_id: 1329
+    rpc_env: SEI_RPC_URL
+    public_rpc: "https://evm-rpc.sei-apis.com"
+    average_block_time: 0.4
+    carbon_controller: "0xe4816658ad10bF215053C533cceAe3f59e1f1087"
+    carbon_vortex: "0x5715203B16F15d7349Cb1E3537365E9664EAf933"
+  tac:
+    chain_id: 239
+    rpc_env: TAC_RPC_URL
+    public_rpc: "https://rpc.tac.build"
+    average_block_time: 2.0
+    carbon_controller: "0xA4682A2A5Fe02feFF8Bd200240A41AD0E6EaF8d5"
+    carbon_vortex: "0xf7c7d7507041977aB0328CAf449f1e80085709a9"
+  celo:
+    chain_id: 42220
+    rpc_env: CELO_RPC_URL
+    public_rpc: "https://forno.celo.org"
+    average_block_time: 5.0
+    carbon_controller: "0x6619871118D144c1c28eC3b23036FC1f0829ed3a"
+    carbon_vortex: "0xD9D89e8A0dfE549e5B424D5b511cB3b84A764857"
+  coti:
+    chain_id: 2632500
+    rpc_env: COTI_RPC_URL
+    public_rpc: "https://mainnet.coti.io/rpc"
+    average_block_time: 1.0
+    carbon_controller: "0x59f21012B2E9BA67ce6a7605E74F945D0D4C84EA"
+    carbon_vortex: "0x653E98561925B55977c0100636CcD314C4F232c5"
+
+market:
+  batch_size: 30
+
+scanner:
+  default_lookback_blocks: 250000
+  block_chunk: 10000

@@ -1,0 +1,24 @@
+# DB Path (defaults to data/tracker.db if not set)
+DB_PATH=data/tracker.db
+
+# Blockchain RPC Keys (Fill in your private nodes, or leave empty to use public fallbacks)
+ETH_RPC_URL=https://rpc.ankr.com/eth
+SEI_RPC_URL=
+TAC_RPC_URL=
+CELO_RPC_URL=
+COTI_RPC_URL=
+
+# Block Scanner Configuration
+# Set LOOKBACK_HOURS to automatically scan blocks for a duration in hours (e.g. 24 hours).
+# It will calculate block times dynamically on each chain.
+LOOKBACK_HOURS=24
+
+# If START_BLOCK is set to a value > 0, it overrides LOOKBACK_HOURS and scans from that block.
+# Leave it at 0 to use automatic LOOKBACK_HOURS calculation.
+START_BLOCK=0
+
+# block_chunk size for log queries (reducing this if RPC limit error occurs)
+BLOCK_CHUNK=10000
+
+# DexScreener API config
+DEXSCREENER_BASE_URL=https://api.dexscreener.com

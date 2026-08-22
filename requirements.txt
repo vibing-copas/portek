@@ -1,0 +1,6 @@
+web3>=7.12,<8
+requests>=2.32
+pandas>=2.2
+streamlit>=1.38
+python-dotenv>=1.0
+PyYAML>=6.0

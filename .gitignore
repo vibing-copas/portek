@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+env/
+.pytest_cache/
+*.log
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Database & Environment
+.env
+data/tracker.db
+data/tracker.db-journal
+
+# IDEs/Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Temporary / Scratch files
+scratch/check_db.py
+scratch/find_final_target_tokens.py
+scratch/delete_final_targets.py
