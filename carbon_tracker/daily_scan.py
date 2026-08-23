@@ -233,7 +233,132 @@ def estimate_fallback_price(token_addr, chain_tokens, market):
             rate = (src_amount / 10**src_dec) / (tgt_amount / 10**tgt_dec)
             return rate * src_price
             
-    return None
+def fetch_global_prices():
+    prices = {"eth": 2400.0, "btc": 70000.0}
+    try:
+        import requests
+        url = "https://api.dexscreener.com/tokens/v1/ethereum/0xC02aaA39b223FE8D0A0e5C4F27ead9083C756Cc2,0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599"
+        r = requests.get(url, timeout=10)
+        if r.status_code == 200:
+            data = r.json()
+            for pair in data:
+                base_addr = pair.get("baseToken", {}).get("address", "").lower()
+                price_usd = pair.get("priceUsd")
+                if price_usd is not None:
+                    if base_addr == "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2":
+                        prices["eth"] = float(price_usd)
+                    elif base_addr == "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599":
+                        prices["btc"] = float(price_usd)
+    except Exception as e:
+        print(f"  [-] Failed to fetch global mainnet prices: {e}. Using defaults.")
+    return prices
+
+
+def resolve_routed_prices(w3, controller, multicall, chain_id, all_tokens):
+    import json
+    import requests
+    
+    market = {}
+    user_assets_file = ROOT / "config" / "user_assets.json"
+    
+    # 1. Ensure user_assets.json is cached or loaded
+    user_symbols = set()
+    try:
+        if not user_assets_file.exists():
+            print("  [~] config/user_assets.json not found. Bootstrapping from DIA quotedAssets API...")
+            user_assets_file.parent.mkdir(parents=True, exist_ok=True)
+            r = requests.get("https://api.diadata.org/v1/quotedAssets", timeout=15)
+            if r.status_code == 200:
+                user_assets_file.write_text(r.text, encoding="utf-8")
+                print("  [+] Successfully cached DIA quotedAssets locally.")
+            else:
+                print(f"  [-] Failed to bootstrap from DIA API: status {r.status_code}")
+        
+        if user_assets_file.exists():
+            user_assets = json.loads(user_assets_file.read_text(encoding="utf-8"))
+            for item in user_assets:
+                sym = item.get("Asset", {}).get("Symbol", "")
+                if sym:
+                    user_symbols.add(sym.lower())
+    except Exception as e:
+        print(f"  [-] Error handling config/user_assets.json: {e}")
+        
+    # 2. Separate tokens: DIA (list) vs remaining
+    dia_tokens = []
+    remaining_tokens = []
+    
+    for t in all_tokens:
+        symbol = t[1]
+        sym_lower = symbol.lower() if symbol else ""
+        if sym_lower in user_symbols:
+            dia_tokens.append(t)
+        else:
+            remaining_tokens.append(t)
+            
+    if dia_tokens:
+        print(f"  [~] pricing routing: {len(dia_tokens)} tokens matching DIA list symbols will query DIA API first.")
+    
+    # 3. Query DIA for DIA tokens
+    dia_cache = {}
+    def get_dia_price(symbol):
+        if not symbol:
+            return None
+        sym_upper = symbol.upper()
+        if sym_upper in dia_cache:
+            return dia_cache[sym_upper]
+        
+        url = f"https://api.diadata.org/v1/quotation/{symbol}"
+        try:
+            r = requests.get(url, timeout=5)
+            if r.status_code == 200:
+                price = r.json().get("Price")
+                if price is not None:
+                    dia_cache[sym_upper] = float(price)
+                    return float(price)
+        except Exception:
+            pass
+        dia_cache[sym_upper] = None
+        return None
+
+    for t in dia_tokens:
+        addr = t[0].lower()
+        symbol = t[1]
+        price = get_dia_price(symbol)
+        if price is not None:
+            market[addr] = {
+                "price_usd": price,
+                "is_dia": True
+            }
+        else:
+            # DIA failed or returned None, fall back to DexScreener/Bancor
+            remaining_tokens.append(t)
+            
+    # 4. Query DexScreener for all remaining tokens
+    if remaining_tokens:
+        print(f"  [~] pricing routing: querying DexScreener for {len(remaining_tokens)} remaining/failed tokens...")
+        try:
+            cfg = load_config()
+            dex_market = dexscreener_query(chain_id, [t[0] for t in remaining_tokens], cfg["market"]["batch_size"])
+            for k, v in dex_market.items():
+                market[k.lower()] = v
+        except Exception as e:
+            print(f"  [-] DexScreener query failed: {e}")
+            
+    # 5. Check if we still have tokens without price, and query Bancor
+    missing_bancor_tokens = [
+        t for t in all_tokens 
+        if t[0].lower() not in market or market[t[0].lower()].get("price_usd") is None
+    ]
+    if missing_bancor_tokens:
+        print(f"  [~] pricing routing: querying Bancor Price Feed for {len(missing_bancor_tokens)} missing tokens...")
+        try:
+            sdk_market = estimate_carbon_prices(w3, controller, multicall, chain_id, missing_bancor_tokens)
+            for k, v in sdk_market.items():
+                market[k.lower()] = v
+        except Exception as e:
+            print(f"  [-] Bancor on-chain pricing failed: {e}")
+            
+    return market
 
 
 def estimate_carbon_prices(w3, controller, multicall, chain_id, tokens):
@@ -633,23 +758,24 @@ def calculate_opportunities(chain_id, w3, controller, vortex, multicall, tokens,
             t_data["quote_status"] = "SKIP"
             t_data["quote_reason"] = "unknown"
             
-    print(f"  [~] opportunities: resolving on-chain carbon DEX strategy prices...")
+    print(f"  [~] opportunities: resolving routed prices for {len(all_tokens)} tokens...")
+    market = {}
     try:
-        market = estimate_carbon_prices(w3, controller, multicall, chain_id, all_tokens)
-    except Exception as carbon_pricing_err:
-        print(f"[-] Carbon on-chain pricing failed: {carbon_pricing_err}. Falling back to DexScreener.")
-        market = {}
-        
-    missing_tokens = [t for t in all_tokens if t[0].lower() not in market or market[t[0].lower()].get("price_usd") is None]
-    if missing_tokens:
-        print(f"  [~] opportunities: querying DexScreener fallback prices for {len(missing_tokens)} tokens...")
+        market = resolve_routed_prices(w3, controller, multicall, chain_id, all_tokens)
+        print(f"  [+] Routed price feed resolved {len(market)} pricing entries")
+    except Exception as route_err:
+        print(f"  [-] Routed price feed query failed: {route_err}. Falling back to default pricing.")
         try:
             cfg = load_config()
-            ds_market = dexscreener_query(chain_id, [t[0] for t in missing_tokens], cfg["market"]["batch_size"])
-            for k, v in ds_market.items():
-                market[k.lower()] = v
-        except Exception:
-            pass
+            market = dexscreener_query(chain_id, [t[0] for t in all_tokens], cfg["market"]["batch_size"])
+            print(f"  [+] Fallback DexScreener resolved {len(market)} pricing entries")
+            missing_tokens = [t for t in all_tokens if t[0].lower() not in market or market[t[0].lower()].get("price_usd") is None]
+            if missing_tokens:
+                sdk_market = estimate_carbon_prices(w3, controller, multicall, chain_id, missing_tokens)
+                for k, v in sdk_market.items():
+                    market[k.lower()] = v
+        except Exception as fallback_err:
+            print(f"  [-] Fallback pricing failed: {fallback_err}")
             
     for t_tuple in all_tokens:
         t_addr = t_tuple[0]
@@ -661,6 +787,54 @@ def calculate_opportunities(chain_id, w3, controller, vortex, multicall, tokens,
                     market[addr_lower] = {}
                 market[addr_lower]["price_usd"] = fallback_price
                 market[addr_lower]["is_fallback"] = True
+
+    # Pricing post-processing: enforce accurate global prices for standard assets and sync native/wrapped
+    print("  [~] opportunities: normalizing and correcting standard token prices...")
+    global_prices = fetch_global_prices()
+    
+    # Sync native and wrapped native prices first
+    NATIVE_WRAPPED_MAP = {
+        1: "0xC02aaA39b223FE8D0A0e5C4F27ead9083C756Cc2",       # WETH on Ethereum
+        1329: "0xE30feDd158A2e3b13e9badaeABaFc5516e95e8C7",    # WSEI on Sei
+        239: "0xb63b9f0eb4a6e6f191529d71d4d88cc8900df2c9",     # WTAC on TAC
+        42220: "0x471EcE3750Da237f93B8E339c536989b8978a438",   # CELO on Celo
+    }
+    wrapped_native_addr = NATIVE_WRAPPED_MAP.get(chain_id, "").lower()
+    native_addr = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+    
+    if native_addr in market and market[native_addr].get("price_usd") is not None:
+        if wrapped_native_addr:
+            if wrapped_native_addr not in market:
+                market[wrapped_native_addr] = {}
+            market[wrapped_native_addr]["price_usd"] = market[native_addr]["price_usd"]
+            market[wrapped_native_addr]["is_corrected"] = True
+    elif wrapped_native_addr in market and market[wrapped_native_addr].get("price_usd") is not None:
+        if native_addr not in market:
+            market[native_addr] = {}
+        market[native_addr]["price_usd"] = market[wrapped_native_addr]["price_usd"]
+        market[native_addr]["is_corrected"] = True
+
+    for t_tuple in all_tokens:
+        t_addr = t_tuple[0].lower()
+        symbol = t_tuple[1].upper() if t_tuple[1] else ""
+        
+        if t_addr not in market:
+            market[t_addr] = {}
+            
+        # 1. Enforce stablecoin price to $1.0
+        if symbol in ["USDC", "USDT", "CUSD", "USDC.N", "USDC.E", "USDT.E", "USDT.N"]:
+            market[t_addr]["price_usd"] = 1.0
+            market[t_addr]["is_corrected"] = True
+            
+        # 2. Enforce ETH/WETH price to global mainnet ETH price
+        elif symbol in ["WETH", "ETH", "WETH.E", "ETH.E"] and symbol not in ["TAC", "WTAC", "SEI", "WSEI", "CELO", "WCELO"]:
+            market[t_addr]["price_usd"] = global_prices["eth"]
+            market[t_addr]["is_corrected"] = True
+            
+        # 3. Enforce BTC/WBTC price to global mainnet BTC price
+        elif symbol in ["WBTC", "BTC", "WBTC.E"]:
+            market[t_addr]["price_usd"] = global_prices["btc"]
+            market[t_addr]["is_corrected"] = True
 
     execute_list = []
     trade_l1_list = []

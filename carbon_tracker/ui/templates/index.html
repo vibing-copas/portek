@@ -624,6 +624,68 @@
             gap: 1.5rem;
             font-size: 0.95rem;
         }
+
+        /* Trend Indicators */
+        .trend-indicator {
+            display: inline-block;
+            font-size: 0.85rem;
+            font-weight: 800;
+            margin-left: 6px;
+            vertical-align: middle;
+            animation: trendFadeIn 0.3s ease-out;
+            cursor: help;
+        }
+
+        .trend-indicator.trend-up {
+            color: var(--emerald);
+        }
+
+        .trend-indicator.trend-down {
+            color: #ef4444;
+        }
+
+        @keyframes trendFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(2px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Snapshot selector custom styles */
+        .snap-nav-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-main);
+            font-size: 1.1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+        .snap-nav-btn:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--primary) !important;
+        }
+        .snap-nav-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            color: var(--text-muted) !important;
+            background: transparent !important;
+        }
+        #snapshot-select:hover {
+            border-color: rgba(59, 130, 246, 0.5);
+        }
+        #snapshot-select:focus {
+            border-color: var(--primary);
+        }
     </style>
 </head>
 
@@ -658,9 +720,25 @@
                 <h1 id="network-title">ALL CHAINS</h1>
                 <p id="network-subtitle">Memuat data peluang eksekusi & perdagangan...</p>
             </div>
-            <button class="export-btn" onclick="exportPDF()">
-                <span>📄</span> Export PDF
-            </button>
+            <div style="display: flex; gap: 1rem; align-items: center;">
+                <!-- Snapshot selector -->
+                <div class="snapshot-selector-container" style="display: flex; align-items: center; gap: 0.5rem; background: var(--card-bg); border: 1px solid var(--card-border); padding: 0.4rem 0.8rem; border-radius: 8px; backdrop-filter: blur(12px);">
+                    <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Snapshot:</span>
+                    <button class="snap-nav-btn" id="prev-snap-btn" onclick="navigateSnapshot(-1)" title="Snapshot Sebelumnya (Older - Arrow Left)" style="background: transparent; border: none; color: var(--text-main); font-size: 1.1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0.25rem 0.5rem; border-radius: 4px; transition: background 0.2s;">
+                        ◀
+                    </button>
+                    <select id="snapshot-select" onchange="onSnapshotSelectChange(this.value)" style="background: rgba(15, 23, 42, 0.8); border: 1px solid var(--card-border); color: var(--text-main); padding: 0.35rem 0.75rem; border-radius: 6px; font-family: 'Inter', sans-serif; font-size: 0.9rem; font-weight: 500; cursor: pointer; outline: none; transition: border-color 0.2s;">
+                        <option value="">Memuat snapshot...</option>
+                    </select>
+                    <button class="snap-nav-btn" id="next-snap-btn" onclick="navigateSnapshot(1)" title="Snapshot Berikutnya (Newer - Arrow Right)" style="background: transparent; border: none; color: var(--text-main); font-size: 1.1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0.25rem 0.5rem; border-radius: 4px; transition: background 0.2s;">
+                        ▶
+                    </button>
+                </div>
+                
+                <button class="export-btn" onclick="exportPDF()">
+                    <span>📄</span> Export PDF
+                </button>
+            </div>
         </header>
 
         <!-- KPI Section: 3 main cards & contribution bar -->
@@ -669,79 +747,107 @@
                 <div class="kpi-card" style="border-left-color: var(--emerald);">
                     <div class="kpi-chain">Trade Level 1 Profit</div>
                     <div class="kpi-stat">
-                        <span class="kpi-val" id="kpi-val-l1" style="font-size: 1.8rem; font-weight: 700; color: var(--emerald);">$0</span>
+                        <span class="kpi-val" id="kpi-val-l1"
+                            style="font-size: 1.8rem; font-weight: 700; color: var(--emerald);">$0</span>
                         <span class="kpi-label">Aktivitas penyeimbangan fee token</span>
                     </div>
                 </div>
                 <div class="kpi-card" style="border-left-color: #3b82f6;">
                     <div class="kpi-chain">Trade Level 2 Profit</div>
                     <div class="kpi-stat">
-                        <span class="kpi-val" id="kpi-val-l2" style="font-size: 1.8rem; font-weight: 700; color: #3b82f6;">$0</span>
+                        <span class="kpi-val" id="kpi-val-l2"
+                            style="font-size: 1.8rem; font-weight: 700; color: #3b82f6;">$0</span>
                         <span class="kpi-label">Peluang arbitrage ke final target</span>
                     </div>
                 </div>
                 <div class="kpi-card" style="border-left-color: var(--amber);">
                     <div class="kpi-chain">Execute Reward</div>
                     <div class="kpi-stat">
-                        <span class="kpi-val" id="kpi-val-exec" style="font-size: 1.8rem; font-weight: 700; color: var(--amber);">$0</span>
+                        <span class="kpi-val" id="kpi-val-exec"
+                            style="font-size: 1.8rem; font-weight: 700; color: var(--amber);">$0</span>
                         <span class="kpi-label">Reward klaim eksekusi vortex</span>
                     </div>
                 </div>
             </div>
-            
-            <div id="contribution-bar-container" style="margin-top: 1.5rem; display: none; background: var(--card-bg); padding: 1.25rem; border-radius: 12px; border: 1px solid var(--card-border);">
-                <h4 style="font-family: 'Outfit', sans-serif; font-size: 1.05rem; margin-bottom: 1.25rem; color: var(--text-main); border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+
+            <div id="contribution-bar-container"
+                style="margin-top: 1.5rem; display: none; background: var(--card-bg); padding: 1.25rem; border-radius: 12px; border: 1px solid var(--card-border);">
+                <h4
+                    style="font-family: 'Outfit', sans-serif; font-size: 1.05rem; margin-bottom: 1.25rem; color: var(--text-main); border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
                     <span>📊</span> Distribusi Kontribusi Blockchain
                 </h4>
-                
+
                 <!-- Bar 1: Level 1 Trades -->
                 <div class="contribution-row" id="contrib-row-l1" style="margin-bottom: 1.25rem;">
-                    <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 0.4rem;">
+                    <div
+                        style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 0.4rem;">
                         <span style="font-weight: 600; color: var(--emerald);">Level 1 Trade Profit Distribution</span>
                         <span id="contrib-total-l1" style="font-weight: 700; color: var(--text-main);">$0</span>
                     </div>
-                    <div class="bar-wrapper" style="height: 12px; border-radius: 6px; overflow: hidden; display: flex; background: rgba(255,255,255,0.05); width: 100%; border: 1px solid var(--card-border);"></div>
-                    <div class="legend" style="display: flex; gap: 1rem; margin-top: 0.4rem; flex-wrap: wrap; font-size: 0.75rem; color: var(--text-muted);"></div>
+                    <div class="bar-wrapper"
+                        style="height: 12px; border-radius: 6px; overflow: hidden; display: flex; background: rgba(255,255,255,0.05); width: 100%; border: 1px solid var(--card-border);">
+                    </div>
+                    <div class="legend"
+                        style="display: flex; gap: 1rem; margin-top: 0.4rem; flex-wrap: wrap; font-size: 0.75rem; color: var(--text-muted);">
+                    </div>
                 </div>
-                
+
                 <!-- Bar 2: Level 2 Trades -->
                 <div class="contribution-row" id="contrib-row-l2" style="margin-bottom: 1.25rem;">
-                    <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 0.4rem;">
+                    <div
+                        style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 0.4rem;">
                         <span style="font-weight: 600; color: #3b82f6;">Level 2 Trade Profit Distribution</span>
                         <span id="contrib-total-l2" style="font-weight: 700; color: var(--text-main);">$0</span>
                     </div>
-                    <div class="bar-wrapper" style="height: 12px; border-radius: 6px; overflow: hidden; display: flex; background: rgba(255,255,255,0.05); width: 100%; border: 1px solid var(--card-border);"></div>
-                    <div class="legend" style="display: flex; gap: 1rem; margin-top: 0.4rem; flex-wrap: wrap; font-size: 0.75rem; color: var(--text-muted);"></div>
+                    <div class="bar-wrapper"
+                        style="height: 12px; border-radius: 6px; overflow: hidden; display: flex; background: rgba(255,255,255,0.05); width: 100%; border: 1px solid var(--card-border);">
+                    </div>
+                    <div class="legend"
+                        style="display: flex; gap: 1rem; margin-top: 0.4rem; flex-wrap: wrap; font-size: 0.75rem; color: var(--text-muted);">
+                    </div>
                 </div>
-                
+
                 <!-- Bar 3: Execute Reward -->
                 <div class="contribution-row" id="contrib-row-exec" style="margin-bottom: 0;">
-                    <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 0.4rem;">
+                    <div
+                        style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 0.4rem;">
                         <span style="font-weight: 600; color: var(--amber);">Execute Reward Distribution</span>
                         <span id="contrib-total-exec" style="font-weight: 700; color: var(--text-main);">$0</span>
                     </div>
-                    <div class="bar-wrapper" style="height: 12px; border-radius: 6px; overflow: hidden; display: flex; background: rgba(255,255,255,0.05); width: 100%; border: 1px solid var(--card-border);"></div>
-                    <div class="legend" style="display: flex; gap: 1rem; margin-top: 0.4rem; flex-wrap: wrap; font-size: 0.75rem; color: var(--text-muted);"></div>
+                    <div class="bar-wrapper"
+                        style="height: 12px; border-radius: 6px; overflow: hidden; display: flex; background: rgba(255,255,255,0.05); width: 100%; border: 1px solid var(--card-border);">
+                    </div>
+                    <div class="legend"
+                        style="display: flex; gap: 1rem; margin-top: 0.4rem; flex-wrap: wrap; font-size: 0.75rem; color: var(--text-muted);">
+                    </div>
                 </div>
             </div>
         </section>
 
         <!-- Tab Controls & Projection Panel -->
-        <div class="controls-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+        <div class="controls-row"
+            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
             <div class="tabs" style="margin-bottom: 0;">
                 <button class="tab-btn active" onclick="switchTab('l2')">Level 2 Trades</button>
                 <button class="tab-btn" onclick="switchTab('l1')">Level 1 Trades</button>
                 <button class="tab-btn" onclick="switchTab('execute')">Execute Opportunities</button>
             </div>
-            
-            <div class="projection-panel" style="display: flex; align-items: center; gap: 0.75rem; background: rgba(255,255,255,0.03); padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid var(--card-border);">
-                <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; cursor: pointer; font-weight: 500; user-select: none;">
-                    <input type="checkbox" id="projection-toggle" onchange="toggleProjectionMode()" style="cursor: pointer; transform: scale(1.1);">
+
+            <div class="projection-panel"
+                style="display: flex; align-items: center; gap: 0.75rem; background: rgba(255,255,255,0.03); padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid var(--card-border);">
+                <label
+                    style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; cursor: pointer; font-weight: 500; user-select: none;">
+                    <input type="checkbox" id="projection-toggle" onchange="toggleProjectionMode()"
+                        style="cursor: pointer; transform: scale(1.1);">
                     🔮 Mode Proyeksi (Masa Depan)
                 </label>
                 <div id="projection-input-container" style="display: none; align-items: center; gap: 0.75rem;">
-                    <input type="range" id="projection-days-slider" min="1" max="30" value="3" oninput="updateProjectionDaysText(this.value)" onchange="renderDashboard()" style="cursor: pointer; width: 120px;">
-                    <span id="projection-days-label" style="font-size: 0.9rem; font-weight: 600; color: var(--amber); min-width: 60px;">+3 Hari</span>
+                    <input type="range" id="projection-days-slider" min="1" max="30" value="3"
+                        oninput="updateProjectionDaysText(this.value)" onchange="renderDashboard()"
+                        style="cursor: pointer; width: 120px;">
+                    <span id="projection-days-label"
+                        style="font-size: 0.9rem; font-weight: 600; color: var(--amber); min-width: 60px;">+3
+                        Hari</span>
                 </div>
             </div>
         </div>
@@ -780,7 +886,8 @@
     <div id="batch-action-bar" class="batch-bar">
         <div class="batch-bar-content">
             <span id="batch-selected-text" style="font-weight: 600; color: var(--text-main);">0 tokens selected</span>
-            <button class="exec-btn" onclick="triggerBatchExecute()" style="padding: 0.5rem 1rem; font-size: 0.85rem;">⚡ Execute Selected</button>
+            <button class="exec-btn" onclick="triggerBatchExecute()" style="padding: 0.5rem 1rem; font-size: 0.85rem;">⚡
+                Execute Selected</button>
         </div>
     </div>
 
@@ -867,24 +974,24 @@
                 showToast("MetaMask tidak terdeteksi. Silakan pasang MetaMask.", "warning");
                 return;
             }
-            
+
             const vortexAddress = VORTEX_ADDRESSES[chainId];
             if (!vortexAddress) {
                 showToast(`Kontrak CarbonVortex untuk Chain ID ${chainId} tidak dikonfigurasi.`, "warning");
                 return;
             }
-            
+
             try {
                 await window.ethereum.request({ method: "eth_requestAccounts" });
-                
+
                 const provider = new ethers.BrowserProvider(window.ethereum);
                 const network = await provider.getNetwork();
-                
+
                 if (Number(network.chainId) !== Number(chainId)) {
                     showToast(`Mengganti network wallet ke ${CHAIN_NAMES[chainId]}...`);
                     const switched = await switchEthereumChain(chainId);
                     if (!switched) return;
-                    
+
                     await new Promise(resolve => setTimeout(resolve, 1000));
                     const newProvider = new ethers.BrowserProvider(window.ethereum);
                     const newNetwork = await newProvider.getNetwork();
@@ -893,17 +1000,17 @@
                         return;
                     }
                 }
-                
+
                 const newProvider = new ethers.BrowserProvider(window.ethereum);
                 const signer = await newProvider.getSigner();
-                
+
                 const contract = new ethers.Contract(vortexAddress, VORTEX_ABI, signer);
-                
+
                 showToast(`Mengirim transaksi execute untuk ${symbol}...`);
-                
+
                 const tx = await contract.execute([tokenAddress]);
                 showToast("Transaksi dikirim! Menunggu konfirmasi...");
-                
+
                 const receipt = await tx.wait();
                 if (receipt.status === 1) {
                     showToast(`Eksekusi ${symbol} berhasil!`, "success");
@@ -990,13 +1097,13 @@
                 showToast("MetaMask tidak terdeteksi. Silakan pasang MetaMask.", "warning");
                 return;
             }
-            
+
             const vortexAddress = VORTEX_ADDRESSES[chainId];
             if (!vortexAddress) {
                 showToast(`Kontrak CarbonVortex untuk Chain ID ${chainId} tidak dikonfigurasi.`, "warning");
                 return;
             }
-            
+
             if (!sourceAddress || sourceAddress === "undefined" || sourceAddress === "null" || sourceAddress === "None" || sourceAddress === "") {
                 const fallback = getFallbackSourceAddress(chainId, tokenAddress);
                 if (fallback) {
@@ -1006,12 +1113,12 @@
                     return;
                 }
             }
-            
+
             try {
                 await window.ethereum.request({ method: "eth_requestAccounts" });
                 const provider = new ethers.BrowserProvider(window.ethereum);
                 const network = await provider.getNetwork();
-                
+
                 // Network check & switch
                 if (Number(network.chainId) !== Number(chainId)) {
                     showToast(`Mengganti network wallet ke ${CHAIN_NAMES[chainId]}...`);
@@ -1025,21 +1132,21 @@
                         return;
                     }
                 }
-                
+
                 const newProvider = new ethers.BrowserProvider(window.ethereum);
                 const signer = await newProvider.getSigner();
                 const userAddress = await signer.getAddress();
-                
+
                 const maxInput = BigInt(requiredSourceRaw) * 102n / 100n;
                 const targetAmount = BigInt(targetAmountRaw);
-                
+
                 const isNativeSource = sourceAddress && (sourceAddress.toLowerCase() === "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee" || sourceAddress.toLowerCase() === "0x0000000000000000000000000000000000000000");
-                
+
                 if (!isNativeSource) {
                     const tokenContract = new ethers.Contract(sourceAddress, ERC20_ABI, signer);
                     showToast("Memeriksa allowance token sumber...");
                     const allowance = await tokenContract.allowance(userAddress, vortexAddress);
-                    
+
                     if (allowance < maxInput) {
                         showToast("Meminta persetujuan (Approve) transfer token...");
                         const approveTx = await tokenContract.approve(vortexAddress, maxInput);
@@ -1048,20 +1155,20 @@
                         showToast("Approve berhasil dikonfirmasi!");
                     }
                 }
-                
+
                 const contract = new ethers.Contract(vortexAddress, VORTEX_ABI, signer);
                 showToast("Mengirim transaksi trade...");
-                
+
                 let tx;
                 if (isNativeSource) {
                     tx = await contract.trade(tokenAddress, targetAmount, maxInput, { value: maxInput });
                 } else {
                     tx = await contract.trade(tokenAddress, targetAmount, maxInput);
                 }
-                
+
                 showToast("Transaksi trade dikirim! Menunggu konfirmasi...");
                 const receipt = await tx.wait();
-                
+
                 if (receipt.status === 1) {
                     showToast(`Perdagangan ${symbol} berhasil dilakukan!`, "success");
                 } else {
@@ -1076,7 +1183,7 @@
                 }
             }
         }
-        
+
         function getFallbackSourceAddress(chainId, tokenAddress) {
             const targetTokens = {
                 1: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
@@ -1092,11 +1199,11 @@
                 42220: "0x471EcE3750Da237f93B8E309c02A08FF65064488",
                 2632500: "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
             };
-            
+
             const targetToken = targetTokens[chainId];
             const finalTarget = finalTargets[chainId];
             if (!targetToken || !finalTarget) return null;
-            
+
             if (tokenAddress.toLowerCase() === targetToken.toLowerCase()) {
                 return finalTarget;
             }
@@ -1165,6 +1272,8 @@
         let rawData = [];
         let selectedChain = "ALL";
         let activeTab = "l2";
+        let snapshotRuns = [];
+        let selectedRunId = null;
 
         // Compact formatting: max 4 characters (3 digits + 1 letter)
         function toCompact(val, isUsd = false) {
@@ -1233,20 +1342,134 @@
             return toCompact(val);
         }
 
+        function getTrendArrow(trend) {
+            if (trend === "UP") {
+                return `<span class="trend-indicator trend-up" title="Meningkat dibanding snapshot sebelumnya">↑</span>`;
+            } else if (trend === "DOWN") {
+                return `<span class="trend-indicator trend-down" title="Menurun dibanding snapshot sebelumnya">↓</span>`;
+            }
+            return "";
+        }
+
         async function loadData() {
-            document.getElementById("network-subtitle").innerText = "Mengambil snapshot data terbaru...";
+            document.getElementById("network-subtitle").innerText = "Mengambil daftar snapshot...";
             try {
-                const res = await fetch("/api/data");
+                // 1. Fetch runs
+                const runsRes = await fetch("/api/runs");
+                snapshotRuns = await runsRes.json();
+                
+                // 2. Populate select element
+                const selectEl = document.getElementById("snapshot-select");
+                selectEl.innerHTML = "";
+                
+                if (snapshotRuns.length === 0) {
+                    selectEl.innerHTML = '<option value="">Tidak ada snapshot</option>';
+                    document.getElementById("prev-snap-btn").disabled = true;
+                    document.getElementById("next-snap-btn").disabled = true;
+                    rawData = [];
+                    renderSidebar();
+                    renderDashboard();
+                    return;
+                }
+                
+                snapshotRuns.forEach(run => {
+                    const date = new Date(run.timestamp * 1000);
+                    const formattedDate = date.toLocaleString("id-ID", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        second: "2-digit"
+                    });
+                    const option = document.createElement("option");
+                    option.value = run.run_id;
+                    option.innerText = `${formattedDate} (${run.chain_count} Chain)`;
+                    selectEl.appendChild(option);
+                });
+                
+                // Default to the first (latest) run if not already set or not in current list
+                if (!selectedRunId || !snapshotRuns.some(r => r.run_id === selectedRunId)) {
+                    selectedRunId = snapshotRuns[0].run_id;
+                }
+                selectEl.value = selectedRunId;
+                
+                updateSnapshotNavButtons();
+                
+                // 3. Load actual data for selected run
+                await loadSnapshotData();
+            } catch (err) {
+                console.error("Gagal mengambil snapshot:", err);
+                document.getElementById("network-subtitle").innerText = "Gagal memuat daftar snapshot dari server.";
+            }
+        }
+
+        async function loadSnapshotData() {
+            if (!selectedRunId) return;
+            document.getElementById("network-subtitle").innerText = "Mengambil data snapshot...";
+            try {
+                const res = await fetch(`/api/data?run_id=${selectedRunId}`);
                 const data = await res.json();
-                // Filter out any opportunities where available amount is 0 or less
                 rawData = data.filter(r => (parseFloat(r.payload.available) || 0) > 0);
                 renderSidebar();
                 renderDashboard();
             } catch (err) {
-                console.error("Gagal mengambil data:", err);
-                document.getElementById("network-subtitle").innerText = "Gagal memuat data dari server.";
+                console.error("Gagal mengambil data snapshot:", err);
+                document.getElementById("network-subtitle").innerText = "Gagal memuat data snapshot dari server.";
             }
         }
+
+        function updateSnapshotNavButtons() {
+            if (!snapshotRuns.length || selectedRunId === null) {
+                document.getElementById("prev-snap-btn").disabled = true;
+                document.getElementById("next-snap-btn").disabled = true;
+                return;
+            }
+            const idx = snapshotRuns.findIndex(r => r.run_id === selectedRunId);
+            if (idx === -1) return;
+            
+            // runs are sorted DESCENDING (index 0 is latest, index length-1 is oldest)
+            // Left arrow (Older): goes to index + 1 (disabled if idx === length - 1)
+            document.getElementById("prev-snap-btn").disabled = (idx === snapshotRuns.length - 1);
+            // Right arrow (Newer): goes to index - 1 (disabled if idx === 0)
+            document.getElementById("next-snap-btn").disabled = (idx === 0);
+        }
+
+        function onSnapshotSelectChange(val) {
+            if (!val) return;
+            selectedRunId = parseInt(val);
+            updateSnapshotNavButtons();
+            loadSnapshotData();
+        }
+
+        function navigateSnapshot(direction) {
+            // direction: -1 for older (left button), +1 for newer (right button)
+            if (!snapshotRuns.length || selectedRunId === null) return;
+            
+            const currentIndex = snapshotRuns.findIndex(r => r.run_id === selectedRunId);
+            if (currentIndex === -1) return;
+            
+            const nextIndex = currentIndex - direction; // -1 older -> index + 1; +1 newer -> index - 1
+            if (nextIndex >= 0 && nextIndex < snapshotRuns.length) {
+                selectedRunId = snapshotRuns[nextIndex].run_id;
+                document.getElementById("snapshot-select").value = selectedRunId;
+                updateSnapshotNavButtons();
+                loadSnapshotData();
+            }
+        }
+
+        // Keyboard navigation for snapshots
+        window.addEventListener("keydown", (e) => {
+            // Ignore keypresses if focus is in an input or select
+            if (e.target.tagName === "INPUT" || e.target.tagName === "SELECT" || e.target.tagName === "TEXTAREA") {
+                return;
+            }
+            if (e.key === "ArrowLeft") {
+                navigateSnapshot(-1); // Older
+            } else if (e.key === "ArrowRight") {
+                navigateSnapshot(1); // Newer
+            }
+        });
 
         function renderSidebar() {
             // Find unique chains in database
@@ -1282,7 +1505,7 @@
             const toggle = document.getElementById("projection-toggle");
             const inputContainer = document.getElementById("projection-input-container");
             isProjectionMode = toggle.checked;
-            
+
             if (isProjectionMode) {
                 inputContainer.style.display = "flex";
             } else {
@@ -1324,14 +1547,14 @@
             const count = checkboxes.length;
             const bar = document.getElementById("batch-action-bar");
             const text = document.getElementById("batch-selected-text");
-            
+
             if (count > 0) {
                 text.innerText = `${count} token dipilih untuk dieksekusi`;
                 bar.classList.add("show");
             } else {
                 bar.classList.remove("show");
             }
-            
+
             // Sync the select-all checkbox state
             const allCheckbox = document.getElementById("select-all-exec");
             if (allCheckbox) {
@@ -1351,44 +1574,44 @@
         async function triggerBatchExecute() {
             const checkboxes = document.querySelectorAll(".exec-row-select:checked");
             if (checkboxes.length === 0) return;
-            
+
             if (typeof window.ethereum === "undefined") {
                 showToast("MetaMask tidak terdeteksi. Silakan pasang MetaMask.", "warning");
                 return;
             }
-            
+
             // Group selected tokens by chainId
             const groups = {};
             checkboxes.forEach(cb => {
                 const chainId = cb.getAttribute("data-chain");
                 const token = cb.getAttribute("data-token");
                 const symbol = cb.getAttribute("data-symbol");
-                
+
                 if (!groups[chainId]) {
                     groups[chainId] = [];
                 }
                 groups[chainId].push({ token, symbol });
             });
-            
+
             // Iterate through each chain group
             for (const chainId of Object.keys(groups)) {
                 const items = groups[chainId];
                 const tokenAddresses = items.map(item => item.token);
                 const symbols = items.map(item => item.symbol).join(", ");
                 const name = CHAIN_NAMES[chainId] || `Chain ${chainId}`;
-                
+
                 const vortexAddress = VORTEX_ADDRESSES[chainId];
                 if (!vortexAddress) {
                     showToast(`Kontrak CarbonVortex untuk ${name} tidak dikonfigurasi.`, "warning");
                     continue;
                 }
-                
+
                 try {
                     await window.ethereum.request({ method: "eth_requestAccounts" });
-                    
+
                     const provider = new ethers.BrowserProvider(window.ethereum);
                     const network = await provider.getNetwork();
-                    
+
                     // Switch chain if needed
                     if (Number(network.chainId) !== Number(chainId)) {
                         showToast(`Mengganti network wallet ke ${name}...`);
@@ -1397,7 +1620,7 @@
                             showToast(`Dibatalkan: Harus berada di network ${name} untuk mengeksekusi token ini.`, "warning");
                             continue;
                         }
-                        
+
                         await new Promise(resolve => setTimeout(resolve, 1000));
                         const newProvider = new ethers.BrowserProvider(window.ethereum);
                         const newNetwork = await newProvider.getNetwork();
@@ -1406,16 +1629,16 @@
                             continue;
                         }
                     }
-                    
+
                     const newProvider = new ethers.BrowserProvider(window.ethereum);
                     const signer = await newProvider.getSigner();
                     const contract = new ethers.Contract(vortexAddress, VORTEX_ABI, signer);
-                    
+
                     showToast(`Mengirim batch execute untuk ${items.length} token (${symbols}) di ${name}...`);
-                    
+
                     const tx = await contract.execute(tokenAddresses);
                     showToast("Transaksi batch dikirim! Menunggu konfirmasi...");
-                    
+
                     const receipt = await tx.wait();
                     if (receipt.status === 1) {
                         showToast(`Batch execute berhasil untuk ${items.length} token di ${name}!`, "success");
@@ -1625,32 +1848,32 @@
                 displayData = data.map(item => {
                     const newItem = { ...item };
                     const p = { ...item.payload };
-                    
+
                     const availableVal = parseFloat(p.available) || 0;
                     const auctionUsd = parseFloat(p.auction_usd) || 0;
                     const marketUsd = parseFloat(p.market_usd) || 0;
                     const halfLife = parseFloat(p.half_life_seconds) || 86400;
                     const eta = parseFloat(p.eta_days) || 0;
-                    
+
                     const decayTimeSeconds = projectionDays * 86400;
                     const projectedAuctionUsd = auctionUsd * Math.pow(2, -decayTimeSeconds / halfLife);
-                    
+
                     const projectedCost = availableVal * projectedAuctionUsd;
                     const projectedMarketVal = availableVal * marketUsd;
                     const projectedProfit = projectedMarketVal - projectedCost;
-                    
+
                     let projectedPremium = 0;
                     if (projectedAuctionUsd > 0 && marketUsd > 0) {
                         projectedPremium = (projectedAuctionUsd / marketUsd - 1) * 100;
                     }
-                    
+
                     const projectedEta = Math.max(0, eta - projectionDays);
-                    
+
                     p.auction_usd = projectedAuctionUsd;
                     p.estimated_profit_usd = projectedProfit;
                     p.premium_pct = projectedPremium;
                     p.eta_days = projectedEta;
-                    
+
                     newItem.payload = p;
                     return newItem;
                 });
@@ -1723,6 +1946,7 @@
                     const premium = parseFloat(p.premium_pct) || 0;
                     const profit = parseFloat(p.estimated_profit_usd) || 0;
                     const eta = parseFloat(p.eta_days) || 0;
+                    const trends = item.trends || {};
 
                     cells.push(`
                         <span class="token-symbol-clickable" onclick="copyTokenAddress('${p.token}', '${p.symbol}')" title="Click to copy contract address: ${p.token}">
@@ -1730,9 +1954,9 @@
                             ${copyIconSvg}
                         </span>
                     `);
-                    cells.push(`${toCompact(availableVal)} ${p.symbol || ""}`);
+                    cells.push(`${toCompact(availableVal)} ${p.symbol || ""}${getTrendArrow(trends.available)}`);
                     cells.push(toCompact(auctionUsd, true));
-                    cells.push(toCompact(marketUsd, true));
+                    cells.push(`${toCompact(marketUsd, true)}${getTrendArrow(trends.market_usd)}`);
                     cells.push(toCompact(availableVal * auctionUsd, true));
                     cells.push(toCompact(availableVal * marketUsd, true));
 
@@ -1744,7 +1968,12 @@
                     const profitBg = profit >= 0 ? "var(--emerald-bg)" : "rgba(239, 68, 68, 0.1)";
                     const profitBorder = profit >= 0 ? "rgba(16, 185, 129, 0.2)" : "rgba(239, 68, 68, 0.2)";
 
-                    cells.push(`<span class="badge-premium" style="background: ${profitBg}; color: ${profitColor}; border-color: ${profitBorder};">${profitSign}${profitStr} (${premStr})</span>`);
+                    cells.push(`
+                        <div style="display: flex; align-items: center;">
+                            <span class="badge-premium" style="background: ${profitBg}; color: ${profitColor}; border-color: ${profitBorder};">${profitSign}${profitStr} (${premStr})</span>
+                            ${getTrendArrow(trends.estimated_profit_usd)}
+                        </div>
+                    `);
                     cells.push(`${eta.toFixed(1)} d`);
                 } else {
                     const availableVal = parseFloat(p.available) || 0;
@@ -1753,6 +1982,7 @@
                     const ppm = parseInt(p.ppm) || 0;
                     const reward = parseFloat(p.reward) || 0;
                     const rewardUsd = parseFloat(p.reward_usd) || 0;
+                    const trends = item.trends || {};
 
                     cells.push(`
                         <span class="token-symbol-clickable" onclick="copyTokenAddress('${p.token}', '${p.symbol}')" title="Click to copy contract address: ${p.token}">
@@ -1760,11 +1990,16 @@
                             ${copyIconSvg}
                         </span>
                     `);
-                    cells.push(`${toCompact(availableVal)} ${p.symbol || ""}`);
-                    cells.push(toCompact(marketUsd, true));
+                    cells.push(`${toCompact(availableVal)} ${p.symbol || ""}${getTrendArrow(trends.available)}`);
+                    cells.push(`${toCompact(marketUsd, true)}${getTrendArrow(trends.market_usd)}`);
                     cells.push(toCompact(size, true));
                     cells.push(`${ppm} PPM`);
-                    cells.push(`<span class="badge-premium">${toCompact(rewardUsd, true)}</span>`);
+                    cells.push(`
+                        <div style="display: flex; align-items: center;">
+                            <span class="badge-premium">${toCompact(rewardUsd, true)}</span>
+                            ${getTrendArrow(trends.reward_usd)}
+                        </div>
+                    `);
                 }
 
                 // Render regular cells
@@ -1780,7 +2015,7 @@
                     <div class="action-cell" style="display: flex; gap: 0.5rem; align-items: center;">
                         <button class="info-btn" onclick="openDetailModal(${JSON.stringify(item).replace(/"/g, '&quot;')})">ℹ️</button>
                 `;
-                
+
                 if (item.kind === "execute") {
                     actionHtml += `
                         <button class="exec-btn" onclick="triggerExecuteOpportunity('${p.token}', ${item.chain_id}, '${p.symbol}')" title="Execute opportunity on blockchain">⚡ Execute</button>
@@ -1790,7 +2025,7 @@
                         <button class="exec-btn" onclick="triggerTradeOpportunity('${p.token}', ${item.chain_id}, '${p.symbol}', '${p.source_address || ""}', '${p.available_raw || "0"}', '${p.required_source_raw || "0"}')" title="Trade/Arbitrage this opportunity">⚡ Trade</button>
                     `;
                 }
-                
+
                 actionHtml += `</div>`;
                 actionTd.innerHTML = actionHtml;
                 tr.appendChild(actionTd);
@@ -2359,16 +2594,13 @@
             btn.disabled = true;
             btn.innerHTML = "<span>⏳</span> Scanning...";
             document.getElementById("network-subtitle").innerText = "Menjalankan pemindaian cepat blockchain (tanpa crawler)...";
-            
+
             try {
                 const res = await fetch("/api/reload", { method: "POST" });
                 if (!res.ok) {
                     throw new Error("HTTP error " + res.status);
                 }
-                const data = await res.json();
-                rawData = data.filter(r => (parseFloat(r.payload.available) || 0) > 0);
-                renderSidebar();
-                renderDashboard();
+                await loadData();
                 showToast("Peluang terbaru berhasil dipindai dan dimuat!", "success");
             } catch (err) {
                 console.error("Gagal memuat ulang data:", err);

@@ -11,6 +11,8 @@ CREATE TABLE IF NOT EXISTS token_registry(
 CREATE TABLE IF NOT EXISTS snapshots(
  id INTEGER PRIMARY KEY AUTOINCREMENT, ts INTEGER NOT NULL, chain_id INTEGER NOT NULL,
  kind TEXT NOT NULL, level INTEGER, token_address TEXT NOT NULL, payload_json TEXT NOT NULL);
+CREATE INDEX IF NOT EXISTS idx_snapshots_chain_ts ON snapshots(chain_id, ts DESC);
+CREATE INDEX IF NOT EXISTS idx_snapshots_ts ON snapshots(ts DESC);
 CREATE TABLE IF NOT EXISTS scan_progress(
  chain_id INTEGER PRIMARY KEY,
  first_scanned_block INTEGER,
