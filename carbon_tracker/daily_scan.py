@@ -5,6 +5,7 @@ from .blockchain.client import connect, contract
 from .blockchain.discovery import discover_fee_tokens
 from .blockchain.vortex import context, classify
 from .market.dexscreener import query as dexscreener_query
+from .market.bybit import query as bybit_query
 
 ERC20_ABI = [
     {"name":"symbol","outputs":[{"type":"string"}],"inputs":[],"stateMutability":"view","type":"function"},
@@ -252,113 +253,6 @@ def fetch_global_prices():
     except Exception as e:
         print(f"  [-] Failed to fetch global mainnet prices: {e}. Using defaults.")
     return prices
-
-
-def resolve_routed_prices(w3, controller, multicall, chain_id, all_tokens):
-    import json
-    import requests
-    
-    market = {}
-    user_assets_file = ROOT / "config" / "user_assets.json"
-    
-    # 1. Ensure user_assets.json is cached or loaded
-    user_symbols = set()
-    try:
-        if not user_assets_file.exists():
-            print("  [~] config/user_assets.json not found. Bootstrapping from DIA quotedAssets API...")
-            user_assets_file.parent.mkdir(parents=True, exist_ok=True)
-            r = requests.get("https://api.diadata.org/v1/quotedAssets", timeout=15)
-            if r.status_code == 200:
-                user_assets_file.write_text(r.text, encoding="utf-8")
-                print("  [+] Successfully cached DIA quotedAssets locally.")
-            else:
-                print(f"  [-] Failed to bootstrap from DIA API: status {r.status_code}")
-        
-        if user_assets_file.exists():
-            user_assets = json.loads(user_assets_file.read_text(encoding="utf-8"))
-            for item in user_assets:
-                sym = item.get("Asset", {}).get("Symbol", "")
-                if sym:
-                    user_symbols.add(sym.lower())
-    except Exception as e:
-        print(f"  [-] Error handling config/user_assets.json: {e}")
-        
-    # 2. Separate tokens: DIA (list) vs remaining
-    dia_tokens = []
-    remaining_tokens = []
-    
-    for t in all_tokens:
-        symbol = t[1]
-        sym_lower = symbol.lower() if symbol else ""
-        if sym_lower in user_symbols:
-            dia_tokens.append(t)
-        else:
-            remaining_tokens.append(t)
-            
-    if dia_tokens:
-        print(f"  [~] pricing routing: {len(dia_tokens)} tokens matching DIA list symbols will query DIA API first.")
-    
-    # 3. Query DIA for DIA tokens
-    dia_cache = {}
-    def get_dia_price(symbol):
-        if not symbol:
-            return None
-        sym_upper = symbol.upper()
-        if sym_upper in dia_cache:
-            return dia_cache[sym_upper]
-        
-        url = f"https://api.diadata.org/v1/quotation/{symbol}"
-        try:
-            r = requests.get(url, timeout=5)
-            if r.status_code == 200:
-                price = r.json().get("Price")
-                if price is not None:
-                    dia_cache[sym_upper] = float(price)
-                    return float(price)
-        except Exception:
-            pass
-        dia_cache[sym_upper] = None
-        return None
-
-    for t in dia_tokens:
-        addr = t[0].lower()
-        symbol = t[1]
-        price = get_dia_price(symbol)
-        if price is not None:
-            market[addr] = {
-                "price_usd": price,
-                "is_dia": True
-            }
-        else:
-            # DIA failed or returned None, fall back to DexScreener/Bancor
-            remaining_tokens.append(t)
-            
-    # 4. Query DexScreener for all remaining tokens
-    if remaining_tokens:
-        print(f"  [~] pricing routing: querying DexScreener for {len(remaining_tokens)} remaining/failed tokens...")
-        try:
-            cfg = load_config()
-            dex_market = dexscreener_query(chain_id, [t[0] for t in remaining_tokens], cfg["market"]["batch_size"])
-            for k, v in dex_market.items():
-                market[k.lower()] = v
-        except Exception as e:
-            print(f"  [-] DexScreener query failed: {e}")
-            
-    # 5. Check if we still have tokens without price, and query Bancor
-    missing_bancor_tokens = [
-        t for t in all_tokens 
-        if t[0].lower() not in market or market[t[0].lower()].get("price_usd") is None
-    ]
-    if missing_bancor_tokens:
-        print(f"  [~] pricing routing: querying Bancor Price Feed for {len(missing_bancor_tokens)} missing tokens...")
-        try:
-            sdk_market = estimate_carbon_prices(w3, controller, multicall, chain_id, missing_bancor_tokens)
-            for k, v in sdk_market.items():
-                market[k.lower()] = v
-        except Exception as e:
-            print(f"  [-] Bancor on-chain pricing failed: {e}")
-            
-    return market
 
 
 def estimate_carbon_prices(w3, controller, multicall, chain_id, tokens):
@@ -758,24 +652,41 @@ def calculate_opportunities(chain_id, w3, controller, vortex, multicall, tokens,
             t_data["quote_status"] = "SKIP"
             t_data["quote_reason"] = "unknown"
             
-    print(f"  [~] opportunities: resolving routed prices for {len(all_tokens)} tokens...")
+    # 3-Layer Pricing System
+    # Layer 1: Bybit API
+    print(f"  [~] opportunities: querying Bybit prices for {len(all_tokens)} tokens...")
     market = {}
     try:
-        market = resolve_routed_prices(w3, controller, multicall, chain_id, all_tokens)
-        print(f"  [+] Routed price feed resolved {len(market)} pricing entries")
-    except Exception as route_err:
-        print(f"  [-] Routed price feed query failed: {route_err}. Falling back to default pricing.")
+        bybit_prices = bybit_query(all_tokens)
+        print(f"  [+] Bybit resolved {len(bybit_prices)} pricing entries")
+        for k, v in bybit_prices.items():
+            market[k.lower()] = v
+    except Exception as bybit_err:
+        print(f"  [-] Bybit query failed: {bybit_err}")
+        
+    # Layer 2: DexScreener (for tokens not found on Bybit)
+    missing_from_bybit = [t for t in all_tokens if t[0].lower() not in market or market[t[0].lower()].get("price_usd") is None]
+    if missing_from_bybit:
+        print(f"  [~] opportunities: querying DexScreener prices for {len(missing_from_bybit)} tokens...")
         try:
             cfg = load_config()
-            market = dexscreener_query(chain_id, [t[0] for t in all_tokens], cfg["market"]["batch_size"])
-            print(f"  [+] Fallback DexScreener resolved {len(market)} pricing entries")
-            missing_tokens = [t for t in all_tokens if t[0].lower() not in market or market[t[0].lower()].get("price_usd") is None]
-            if missing_tokens:
-                sdk_market = estimate_carbon_prices(w3, controller, multicall, chain_id, missing_tokens)
-                for k, v in sdk_market.items():
-                    market[k.lower()] = v
-        except Exception as fallback_err:
-            print(f"  [-] Fallback pricing failed: {fallback_err}")
+            ds_prices = dexscreener_query(chain_id, [t[0] for t in missing_from_bybit], cfg["market"]["batch_size"])
+            print(f"  [+] DexScreener resolved {len(ds_prices)} pricing entries")
+            for k, v in ds_prices.items():
+                market[k.lower()] = v
+        except Exception as ds_err:
+            print(f"  [-] DexScreener query failed: {ds_err}")
+            
+    # Layer 3: Carbon (for tokens not found on Bybit or DexScreener)
+    missing_from_all = [t for t in all_tokens if t[0].lower() not in market or market[t[0].lower()].get("price_usd") is None]
+    if missing_from_all:
+        print(f"  [~] opportunities: resolving on-chain carbon DEX strategy prices for {len(missing_from_all)} missing tokens...")
+        try:
+            sdk_market = estimate_carbon_prices(w3, controller, multicall, chain_id, missing_from_all)
+            for k, v in sdk_market.items():
+                market[k.lower()] = v
+        except Exception as carbon_pricing_err:
+            print(f"  [-] Carbon on-chain pricing failed for missing tokens: {carbon_pricing_err}")
             
     for t_tuple in all_tokens:
         t_addr = t_tuple[0]

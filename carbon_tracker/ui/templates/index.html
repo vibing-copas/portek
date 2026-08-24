@@ -625,6 +625,23 @@
             font-size: 0.95rem;
         }
 
+        .cancel-btn {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-muted);
+            border: 1px solid var(--card-border);
+            padding: 0.5rem 1.2rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .cancel-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-main);
+        }
+
         /* Trend Indicators */
         .trend-indicator {
             display: inline-block;
@@ -768,6 +785,14 @@
                         <span class="kpi-label">Reward klaim eksekusi vortex</span>
                     </div>
                 </div>
+                <div class="kpi-card" style="border-left-color: #8b5cf6;">
+                    <div class="kpi-chain">Total Execute Size</div>
+                    <div class="kpi-stat">
+                        <span class="kpi-val" id="kpi-val-size"
+                            style="font-size: 1.8rem; font-weight: 700; color: #8b5cf6;">$0</span>
+                        <span class="kpi-label">Total volume/size yang dapat dieksekusi</span>
+                    </div>
+                </div>
             </div>
 
             <div id="contribution-bar-container"
@@ -888,6 +913,7 @@
             <span id="batch-selected-text" style="font-weight: 600; color: var(--text-main);">0 tokens selected</span>
             <button class="exec-btn" onclick="triggerBatchExecute()" style="padding: 0.5rem 1rem; font-size: 0.85rem;">⚡
                 Execute Selected</button>
+            <button class="cancel-btn" onclick="clearBatchSelection()">Batal</button>
         </div>
     </div>
 
@@ -1549,7 +1575,11 @@
             const text = document.getElementById("batch-selected-text");
 
             if (count > 0) {
-                text.innerText = `${count} token dipilih untuk dieksekusi`;
+                let totalSize = 0;
+                checkboxes.forEach(cb => {
+                    totalSize += parseFloat(cb.getAttribute("data-size")) || 0;
+                });
+                text.innerText = `${count} token dipilih untuk dieksekusi (Total Size: ${toCompact(totalSize, true)})`;
                 bar.classList.add("show");
             } else {
                 bar.classList.remove("show");
@@ -1561,6 +1591,14 @@
                 const totalCheckboxes = document.querySelectorAll(".exec-row-select");
                 allCheckbox.checked = totalCheckboxes.length > 0 && checkboxes.length === totalCheckboxes.length;
             }
+        }
+
+        function clearBatchSelection() {
+            const checkboxes = document.querySelectorAll(".exec-row-select:checked");
+            checkboxes.forEach(cb => {
+                cb.checked = false;
+            });
+            updateSelectedExecCount();
         }
 
         function toggleSelectAllExec(headerCheckbox) {
@@ -1711,6 +1749,7 @@
             let totalL1 = 0;
             let totalL2 = 0;
             let totalExec = 0;
+            let totalSize = 0;
 
             // Group totals per chain per category
             const l1Breakdown = {};
@@ -1740,6 +1779,8 @@
                     const reward = parseFloat(p.reward_usd) || 0;
                     totalExec += reward;
                     execBreakdown[cid] += reward;
+                    const size = parseFloat(p.size_usd) || 0;
+                    totalSize += size;
                 }
             });
 
@@ -1747,6 +1788,7 @@
             document.getElementById("kpi-val-l1").innerText = toCompact(totalL1, true);
             document.getElementById("kpi-val-l2").innerText = toCompact(totalL2, true);
             document.getElementById("kpi-val-exec").innerText = toCompact(totalExec, true);
+            document.getElementById("kpi-val-size").innerText = toCompact(totalSize, true);
 
             // Update Segmented Contribution Bars
             const barContainer = document.getElementById("contribution-bar-container");
@@ -1933,7 +1975,7 @@
 
                 let cells = [];
                 if (activeTab === "execute") {
-                    cells.push(`<input type="checkbox" class="exec-row-select" data-token="${p.token}" data-chain="${item.chain_id}" data-symbol="${p.symbol}" onchange="updateSelectedExecCount()" style="cursor: pointer; transform: scale(1.1);">`);
+                    cells.push(`<input type="checkbox" class="exec-row-select" data-token="${p.token}" data-chain="${item.chain_id}" data-symbol="${p.symbol}" data-size="${p.size_usd || 0}" onchange="updateSelectedExecCount()" style="cursor: pointer; transform: scale(1.1);">`);
                 }
                 if (selectedChain === "ALL") {
                     cells.push(CHAIN_NAMES[item.chain_id] || `Chain ${item.chain_id}`);
