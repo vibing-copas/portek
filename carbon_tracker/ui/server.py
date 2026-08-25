@@ -6,7 +6,7 @@ import time
 import threading
 import subprocess
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request, Header
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pathlib import Path
@@ -271,10 +271,61 @@ def reload_data():
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to scan and reload data: {str(e)}")
 
+@app.post("/api/admin/migrate-db")
+async def migrate_db(request: Request, x_migration_secret: str = Header(None)):
+    expected_secret = os.getenv("MIGRATION_SECRET", "default-temp-secret-key-12345")
+    if not x_migration_secret or x_migration_secret != expected_secret:
+        raise HTTPException(status_code=401, detail="Unauthorized: Invalid migration secret header.")
+    
+    body_bytes = await request.body()
+    if not body_bytes or not body_bytes.startswith(b"SQLite format 3\x00"):
+        raise HTTPException(status_code=400, detail="Invalid payload: Uploaded data is not a valid SQLite database file.")
+    
+    target_path = Path(DB_PATH)
+    target_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    temp_path = target_path.with_suffix(".tmp_migrate")
+    with open(temp_path, "wb") as f:
+        f.write(body_bytes)
+        
+    if target_path.exists():
+        wal_file = target_path.with_name(target_path.name + "-wal")
+        shm_file = target_path.with_name(target_path.name + "-shm")
+        if wal_file.exists():
+            try: wal_file.unlink()
+            except Exception: pass
+        if shm_file.exists():
+            try: shm_file.unlink()
+            except Exception: pass
+            
+    os.replace(temp_path, target_path)
+    
+    stats = {}
+    try:
+        conn = sqlite3.connect(str(target_path))
+        c = conn.cursor()
+        for table in ["token_registry", "snapshots", "scan_progress"]:
+            try:
+                c.execute(f"SELECT COUNT(*) FROM {table}")
+                stats[table] = c.fetchone()[0]
+            except Exception:
+                stats[table] = 0
+        conn.close()
+    except Exception as e:
+        stats["error"] = str(e)
+        
+    return {
+        "status": "success",
+        "message": "Database migrated successfully!",
+        "file_size_bytes": len(body_bytes),
+        "table_stats": stats
+    }
+
 @app.get("/", response_class=HTMLResponse)
 def read_root():
     index_file = TEMPLATES_DIR / "index.html"
     if not index_file.exists():
         raise HTTPException(status_code=404, detail="Frontend dashboard template not found.")
     return FileResponse(str(index_file))
+
 
