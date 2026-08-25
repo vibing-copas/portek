@@ -766,8 +766,24 @@ def calculate_opportunities(chain_id, w3, controller, vortex, multicall, tokens,
             "native": (t_addr.lower() == "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee")
         }
         
+        # Determine price source tag
+        m_entry = market.get(t_addr.lower(), {})
+        if m_entry.get("is_bybit"):
+            price_source = "Bybit Spot API"
+        elif m_entry.get("dex"):
+            price_source = f"DexScreener API ({m_entry['dex'].upper()})"
+        elif m_entry.get("is_carbon_native"):
+            price_source = "Carbon DEX On-Chain Strategy"
+        elif m_entry.get("is_fallback"):
+            price_source = "Fallback Rate Calculation"
+        elif m_entry.get("is_corrected"):
+            price_source = "Global Feed / Normalized Stable"
+        else:
+            price_source = "Unknown/DEX Feed"
+
         ex_row = execute_row_multicall(t_addr, meta, t_data["available_execute_raw"], ppm, market)
-        if market.get(t_addr.lower(), {}).get("is_fallback"):
+        ex_row["price_source"] = price_source
+        if m_entry.get("is_fallback"):
             ex_row["symbol"] = f"{symbol} ⚡"
         execute_list.append(ex_row)
         
@@ -779,7 +795,8 @@ def calculate_opportunities(chain_id, w3, controller, vortex, multicall, tokens,
                 "level": cls["level"],
                 "status": "SKIP",
                 "reason": t_data.get("quote_reason", "SKIP"),
-                "available": 0
+                "available": 0,
+                "price_source": price_source
             }
         else:
             src_meta = next(({"symbol": t[1], "decimals": t[2], "address": t[0]} for t in all_tokens if t[0].lower() == cls["source"].lower()), None)
@@ -791,8 +808,9 @@ def calculate_opportunities(chain_id, w3, controller, vortex, multicall, tokens,
                 tgt_meta = {"symbol": cls["target"][:6], "decimals": 18, "address": cls["target"]}
                 
             tr_row = trade_row_multicall(t_addr, meta, src_meta, tgt_meta, cls, t_data, ctx, market)
+            tr_row["price_source"] = price_source
             
-        if market.get(t_addr.lower(), {}).get("is_fallback"):
+        if m_entry.get("is_fallback"):
             tr_row["symbol"] = f"{symbol} ⚡"
             
         if cls["level"] == 2:

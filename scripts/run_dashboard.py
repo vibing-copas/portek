@@ -45,5 +45,6 @@ if __name__ == "__main__":
     print("[+] Starting Carbon Vortex custom dashboard server...")
     print("[+] Open your browser at http://localhost:8000")
     
+    port = int(os.environ.get("PORT", 8000))
     # Run the uvicorn server pointing to our server app
-    uvicorn.run("carbon_tracker.ui.server:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("carbon_tracker.ui.server:app", host="0.0.0.0", port=port, reload=False)

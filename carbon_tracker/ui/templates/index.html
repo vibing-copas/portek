@@ -12,6 +12,9 @@
         rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
     <style>
+        html {
+            overflow-y: scroll;
+        }
         :root {
             --bg-color: #0b0f19;
             --card-bg: rgba(17, 24, 39, 0.7);
@@ -724,10 +727,6 @@
         <div class="chain-select-container" id="chain-buttons">
             <!-- Rendered Dynamically -->
         </div>
-
-        <button class="reload-btn" id="reload-btn">
-            <span>🔄</span> Reload Data
-        </button>
     </aside>
 
     <!-- Main Content -->
@@ -740,20 +739,20 @@
             <div style="display: flex; gap: 1rem; align-items: center;">
                 <!-- Snapshot selector -->
                 <div class="snapshot-selector-container" style="display: flex; align-items: center; gap: 0.5rem; background: var(--card-bg); border: 1px solid var(--card-border); padding: 0.4rem 0.8rem; border-radius: 8px; backdrop-filter: blur(12px);">
-                    <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Snapshot:</span>
-                    <button class="snap-nav-btn" id="prev-snap-btn" onclick="navigateSnapshot(-1)" title="Snapshot Sebelumnya (Older - Arrow Left)" style="background: transparent; border: none; color: var(--text-main); font-size: 1.1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0.25rem 0.5rem; border-radius: 4px; transition: background 0.2s;">
+                    <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Tanggal Scan:</span>
+                    <button class="snap-nav-btn" id="prev-snap-btn" onclick="navigateSnapshot(-1)" title="Scan Sebelumnya (Older - Arrow Left)">
                         ◀
                     </button>
-                    <select id="snapshot-select" onchange="onSnapshotSelectChange(this.value)" style="background: rgba(15, 23, 42, 0.8); border: 1px solid var(--card-border); color: var(--text-main); padding: 0.35rem 0.75rem; border-radius: 6px; font-family: 'Inter', sans-serif; font-size: 0.9rem; font-weight: 500; cursor: pointer; outline: none; transition: border-color 0.2s;">
-                        <option value="">Memuat snapshot...</option>
+                    <select id="snapshot-select" onchange="onSnapshotSelectChange(this.value)" style="background: rgba(15, 23, 42, 0.8); border: 1px solid var(--card-border); color: var(--text-main); padding: 0.35rem 0.75rem; border-radius: 6px; font-family: 'Inter', sans-serif; font-size: 0.9rem; font-weight: 500; cursor: pointer; outline: none; transition: border-color 0.2s; min-width: 260px; max-width: 280px; text-overflow: ellipsis;">
+                        <option value="">Memuat data scan...</option>
                     </select>
-                    <button class="snap-nav-btn" id="next-snap-btn" onclick="navigateSnapshot(1)" title="Snapshot Berikutnya (Newer - Arrow Right)" style="background: transparent; border: none; color: var(--text-main); font-size: 1.1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0.25rem 0.5rem; border-radius: 4px; transition: background 0.2s;">
+                    <button class="snap-nav-btn" id="next-snap-btn" onclick="navigateSnapshot(1)" title="Scan Berikutnya (Newer - Arrow Right)">
                         ▶
                     </button>
                 </div>
                 
                 <button class="export-btn" onclick="exportPDF()">
-                    <span>📄</span> Export PDF
+                    Export PDF
                 </button>
             </div>
         </header>
@@ -864,7 +863,7 @@
                     style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; cursor: pointer; font-weight: 500; user-select: none;">
                     <input type="checkbox" id="projection-toggle" onchange="toggleProjectionMode()"
                         style="cursor: pointer; transform: scale(1.1);">
-                    🔮 Mode Proyeksi (Masa Depan)
+                    Mode Proyeksi (Masa Depan)
                 </label>
                 <div id="projection-input-container" style="display: none; align-items: center; gap: 0.75rem;">
                     <input type="range" id="projection-days-slider" min="1" max="30" value="3"
@@ -911,7 +910,7 @@
     <div id="batch-action-bar" class="batch-bar">
         <div class="batch-bar-content">
             <span id="batch-selected-text" style="font-weight: 600; color: var(--text-main);">0 tokens selected</span>
-            <button class="exec-btn" onclick="triggerBatchExecute()" style="padding: 0.5rem 1rem; font-size: 0.85rem;">⚡
+            <button class="exec-btn" onclick="triggerBatchExecute()" style="padding: 0.5rem 1rem; font-size: 0.85rem;">
                 Execute Selected</button>
             <button class="cancel-btn" onclick="clearBatchSelection()">Batal</button>
         </div>
@@ -1295,6 +1294,15 @@
             2632500: "#f59e0b"  // Coti (Amber)
         };
 
+        const CHAIN_LOGOS = {
+            "ALL": "https://img.icons8.com/ios-filled/50/3b82f6/globe.png",
+            1: "https://app.carbondefi.xyz/tokens/ethereum/0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee.svg",
+            1329: "https://cdn.sei.io/assets/Sei_Symbol_Gradient.svg",
+            239: "https://res.cloudinary.com/dqz8o8js4/image/upload/v1752369223/Copy_of_TAC-logo-symbol-purple_xx17mf.png",
+            42220: "https://raw.githubusercontent.com/celo-org/celo-token-list/main/assets/celo_logo.svg",
+            2632500: "data:image/svg+xml,%3csvg%20version='1.1'%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20800%20800'%3e%3cdefs%3e%3clinearGradient%20id='coti-blue-gradient'%20gradientUnits='userSpaceOnUse'%20x1='2'%20y1='400'%20x2='798'%20y2='400'%3e%3cstop%20offset='0.2'%20stop-color='%232BBFDF'/%3e%3cstop%20offset='0.5007'%20stop-color='%23248FCB'/%3e%3cstop%20offset='0.9'%20stop-color='%23194AAD'/%3e%3c/linearGradient%3e%3clinearGradient%20id='white-gradient-bottom'%20gradientUnits='userSpaceOnUse'%20x1='332.7234'%20y1='265.7903'%20x2='281.324'%20y2='557.1123'%20gradientTransform='matrix(1%200%200%20-1%200%20802)'%3e%3cstop%20offset='0'%20stop-color='white'/%3e%3cstop%20offset='0.5'%20stop-color='white'%20stop-opacity='0.7'/%3e%3cstop%20offset='0.8'%20stop-color='white'%20stop-opacity='0.5'/%3e%3c/linearGradient%3e%3clinearGradient%20id='white-gradient-top'%20gradientUnits='userSpaceOnUse'%20x1='4213.6851'%20y1='985.9159'%20x2='4281.7158'%20y2='1371.7155'%20gradientTransform='matrix(-1%200%200%201%204740.3999%20-766.7)'%3e%3cstop%20offset='0'%20stop-color='white'/%3e%3cstop%20offset='0.5'%20stop-color='white'%20stop-opacity='0.7'/%3e%3cstop%20offset='0.8'%20stop-color='white'%20stop-opacity='0.5'/%3e%3c/linearGradient%3e%3c/defs%3e%3ccircle%20fill='url(%23coti-blue-gradient)'%20cx='400'%20cy='400'%20r='398'/%3e%3cpath%20fill='url(%23white-gradient-bottom)'%20d='M170.32,358.77%20c-7.75,0-11.45,3-11.45,10.92c0,0,0,159.11,0,181.49c0,7.58,3.88,10.92,11.28,10.92c87.75,0.88,193.64-76.82,282.62-137.79V214.64%20C365.38,274.72,255.78,360,170.32,358.77z'/%3e%3cpath%20fill='url(%23white-gradient-top)'%20d='M629.68,441.05%20c7.75,0,11.45-3,11.45-10.92c0,0,0-159.11,0-181.49c0-7.58-3.88-10.92-11.28-10.92c-87.75-0.88-193.64,76.82-282.62,137.79v209.85%20c87.39-60.08,196.81-145.54,282.45-144.13V441.05z'/%3e%3cpath%20fill='white'%20d='M452.77,424.49V304.68c-36.3,22.55-72.07,47.93-105.54,70.83v119.82C383.53,472.77,419.29,447.4,452.77,424.49%20z'/%3e%3c/svg%3e"
+        };
+
         let rawData = [];
         let selectedChain = "ALL";
         let activeTab = "l2";
@@ -1368,17 +1376,24 @@
             return toCompact(val);
         }
 
-        function getTrendArrow(trend) {
+        function getTrendArrow(trend, pct) {
             if (trend === "UP") {
-                return `<span class="trend-indicator trend-up" title="Meningkat dibanding snapshot sebelumnya">↑</span>`;
+                const pctStr = pct !== undefined && pct !== null ? ` +${pct}%` : "";
+                return `<span class="trend-indicator trend-up" title="Meningkat dibanding snapshot hari sebelumnya">↑${pctStr}</span>`;
             } else if (trend === "DOWN") {
-                return `<span class="trend-indicator trend-down" title="Menurun dibanding snapshot sebelumnya">↓</span>`;
+                const pctStr = pct !== undefined && pct !== null ? ` ${pct}%` : "";
+                return `<span class="trend-indicator trend-down" title="Menurun dibanding snapshot hari sebelumnya">↓${pctStr}</span>`;
             }
             return "";
         }
 
+        // List of days, where each day maps to its runs (the first is the latest run of that day)
+        let groupedRunsByDay = {}; 
+        let snapshotDays = []; // Sorted list of unique day string labels
+        let selectedDayLabel = null;
+
         async function loadData() {
-            document.getElementById("network-subtitle").innerText = "Mengambil daftar snapshot...";
+            document.getElementById("network-subtitle").innerText = "Mengambil daftar hasil pindai...";
             try {
                 // 1. Fetch runs
                 const runsRes = await fetch("/api/runs");
@@ -1389,7 +1404,7 @@
                 selectEl.innerHTML = "";
                 
                 if (snapshotRuns.length === 0) {
-                    selectEl.innerHTML = '<option value="">Tidak ada snapshot</option>';
+                    selectEl.innerHTML = '<option value="">Tidak ada data scan</option>';
                     document.getElementById("prev-snap-btn").disabled = true;
                     document.getElementById("next-snap-btn").disabled = true;
                     rawData = [];
@@ -1398,41 +1413,52 @@
                     return;
                 }
                 
+                // Group runs by calendar day in local time
+                groupedRunsByDay = {};
                 snapshotRuns.forEach(run => {
                     const date = new Date(run.timestamp * 1000);
-                    const formattedDate = date.toLocaleString("id-ID", {
+                    const dayLabel = date.toLocaleDateString("id-ID", {
+                        weekday: "long",
                         day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                        second: "2-digit"
+                        month: "long",
+                        year: "numeric"
                     });
+                    if (!groupedRunsByDay[dayLabel]) {
+                        groupedRunsByDay[dayLabel] = [];
+                    }
+                    groupedRunsByDay[dayLabel].push(run);
+                });
+                
+                snapshotDays = Object.keys(groupedRunsByDay); // Order preserved from snapshotRuns descending
+                
+                snapshotDays.forEach(day => {
                     const option = document.createElement("option");
-                    option.value = run.run_id;
-                    option.innerText = `${formattedDate} (${run.chain_count} Chain)`;
+                    option.value = day;
+                    option.innerText = day; // Jumlah snapshot dihapus
                     selectEl.appendChild(option);
                 });
                 
-                // Default to the first (latest) run if not already set or not in current list
-                if (!selectedRunId || !snapshotRuns.some(r => r.run_id === selectedRunId)) {
-                    selectedRunId = snapshotRuns[0].run_id;
+                // Default to the first (latest) day if not already set or not in current list
+                if (!selectedDayLabel || !groupedRunsByDay[selectedDayLabel]) {
+                    selectedDayLabel = snapshotDays[0];
                 }
-                selectEl.value = selectedRunId;
+                selectEl.value = selectedDayLabel;
+                
+                selectedRunId = groupedRunsByDay[selectedDayLabel][0].run_id;
                 
                 updateSnapshotNavButtons();
                 
                 // 3. Load actual data for selected run
                 await loadSnapshotData();
             } catch (err) {
-                console.error("Gagal mengambil snapshot:", err);
-                document.getElementById("network-subtitle").innerText = "Gagal memuat daftar snapshot dari server.";
+                console.error("Gagal mengambil daftar hasil pindai:", err);
+                document.getElementById("network-subtitle").innerText = "Gagal memuat daftar scan dari server.";
             }
         }
 
         async function loadSnapshotData() {
             if (!selectedRunId) return;
-            document.getElementById("network-subtitle").innerText = "Mengambil data snapshot...";
+            document.getElementById("network-subtitle").innerText = "Mengambil data scan...";
             try {
                 const res = await fetch(`/api/data?run_id=${selectedRunId}`);
                 const data = await res.json();
@@ -1440,45 +1466,46 @@
                 renderSidebar();
                 renderDashboard();
             } catch (err) {
-                console.error("Gagal mengambil data snapshot:", err);
-                document.getElementById("network-subtitle").innerText = "Gagal memuat data snapshot dari server.";
+                console.error("Gagal mengambil data scan:", err);
+                document.getElementById("network-subtitle").innerText = "Gagal memuat data scan dari server.";
             }
         }
 
         function updateSnapshotNavButtons() {
-            if (!snapshotRuns.length || selectedRunId === null) {
+            if (!snapshotDays.length || selectedDayLabel === null) {
                 document.getElementById("prev-snap-btn").disabled = true;
                 document.getElementById("next-snap-btn").disabled = true;
                 return;
             }
-            const idx = snapshotRuns.findIndex(r => r.run_id === selectedRunId);
+            const idx = snapshotDays.indexOf(selectedDayLabel);
             if (idx === -1) return;
             
-            // runs are sorted DESCENDING (index 0 is latest, index length-1 is oldest)
-            // Left arrow (Older): goes to index + 1 (disabled if idx === length - 1)
-            document.getElementById("prev-snap-btn").disabled = (idx === snapshotRuns.length - 1);
-            // Right arrow (Newer): goes to index - 1 (disabled if idx === 0)
+            // Left arrow (Older): index + 1 (disabled if idx === length - 1)
+            document.getElementById("prev-snap-btn").disabled = (idx === snapshotDays.length - 1);
+            // Right arrow (Newer): index - 1 (disabled if idx === 0)
             document.getElementById("next-snap-btn").disabled = (idx === 0);
         }
 
-        function onSnapshotSelectChange(val) {
-            if (!val) return;
-            selectedRunId = parseInt(val);
+        function onSnapshotSelectChange(dayLabel) {
+            if (!dayLabel) return;
+            selectedDayLabel = dayLabel;
+            selectedRunId = groupedRunsByDay[selectedDayLabel][0].run_id;
             updateSnapshotNavButtons();
             loadSnapshotData();
         }
 
         function navigateSnapshot(direction) {
             // direction: -1 for older (left button), +1 for newer (right button)
-            if (!snapshotRuns.length || selectedRunId === null) return;
+            if (!snapshotDays.length || selectedDayLabel === null) return;
             
-            const currentIndex = snapshotRuns.findIndex(r => r.run_id === selectedRunId);
+            const currentIndex = snapshotDays.indexOf(selectedDayLabel);
             if (currentIndex === -1) return;
             
             const nextIndex = currentIndex - direction; // -1 older -> index + 1; +1 newer -> index - 1
-            if (nextIndex >= 0 && nextIndex < snapshotRuns.length) {
-                selectedRunId = snapshotRuns[nextIndex].run_id;
-                document.getElementById("snapshot-select").value = selectedRunId;
+            if (nextIndex >= 0 && nextIndex < snapshotDays.length) {
+                selectedDayLabel = snapshotDays[nextIndex];
+                selectedRunId = groupedRunsByDay[selectedDayLabel][0].run_id;
+                document.getElementById("snapshot-select").value = selectedDayLabel;
                 updateSnapshotNavButtons();
                 loadSnapshotData();
             }
@@ -1486,7 +1513,6 @@
 
         // Keyboard navigation for snapshots
         window.addEventListener("keydown", (e) => {
-            // Ignore keypresses if focus is in an input or select
             if (e.target.tagName === "INPUT" || e.target.tagName === "SELECT" || e.target.tagName === "TEXTAREA") {
                 return;
             }
@@ -1498,8 +1524,8 @@
         });
 
         function renderSidebar() {
-            // Find unique chains in database
-            const activeChains = [...new Set(rawData.map(r => r.chain_id))];
+            // Display all configured chains to keep the layout static and stable
+            const activeChains = [1, 1329, 239, 42220, 2632500];
 
             const sidebarContainer = document.getElementById("chain-buttons");
             sidebarContainer.innerHTML = "";
@@ -1508,7 +1534,14 @@
             const allBtn = document.createElement("button");
             allBtn.className = `chain-btn ${selectedChain === "ALL" ? "active" : ""}`;
             allBtn.onclick = () => selectChain("ALL");
-            allBtn.innerHTML = `<span>🌐 ALL CHAINS</span>`;
+            
+            const allLogoUrl = CHAIN_LOGOS["ALL"];
+            allBtn.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <img src="${allLogoUrl}" style="width: 20px; height: 20px; border-radius: 50%; object-fit: cover;" />
+                    <span>ALL CHAINS</span>
+                </div>
+            `;
             sidebarContainer.appendChild(allBtn);
 
             activeChains.forEach(cid => {
@@ -1517,9 +1550,14 @@
                 btn.className = `chain-btn ${selectedChain === cid ? "active" : ""}`;
                 btn.onclick = () => selectChain(cid);
 
-                // Count items on this chain
-                const count = rawData.filter(r => r.chain_id === cid).length;
-                btn.innerHTML = `<span>🔗 ${name}</span> <span class="chain-badge">${count}</span>`;
+                const logoUrl = CHAIN_LOGOS[cid] || "https://img.icons8.com/color/48/blockchain.png";
+                
+                btn.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <img src="${logoUrl}" style="width: 20px; height: 20px; border-radius: 50%; object-fit: cover;" />
+                        <span>${name}</span>
+                    </div>
+                `;
                 sidebarContainer.appendChild(btn);
             });
         }
@@ -1739,11 +1777,6 @@
 
         function renderKpis(data) {
             const kpiSection = document.getElementById("kpi-section");
-            if (data.length === 0) {
-                kpiSection.style.display = "none";
-                return;
-            }
-
             kpiSection.style.display = "block";
 
             let totalL1 = 0;
@@ -1872,12 +1905,40 @@
             headerRow.innerHTML = "";
             tbody.innerHTML = "";
 
+            // Headers configuration
+            let headers = [];
+            if (activeTab === "execute") {
+                headers.push(`<input type="checkbox" id="select-all-exec" onchange="toggleSelectAllExec(this)" style="cursor: pointer; transform: scale(1.2);">`);
+            }
+            if (selectedChain === "ALL") {
+                headers.push("Chain");
+            }
+
+            if (activeTab === "l2" || activeTab === "l1") {
+                const suffix = isProjectionMode ? " (Proj.)" : "";
+                headers = headers.concat([
+                    "Token", "Available", "Auction Price" + suffix, "Market Price",
+                    "Auction Size" + suffix, "Market Size", "Est. Profit" + suffix, "ETA" + suffix, "Aksi"
+                ]);
+            } else {
+                headers = headers.concat([
+                    "Token", "Available", "Market Price", "Size", "Rewards", "Est. Reward", "Aksi"
+                ]);
+            }
+
+            // Render headers
+            headers.forEach(h => {
+                const th = document.createElement("th");
+                th.innerHTML = h;
+                headerRow.appendChild(th);
+            });
+
             if (data.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="100%" class="empty-state">
+                        <td colspan="${headers.length}" class="empty-state">
                             <div class="empty-state-icon">📭</div>
-                            <div>Tidak ada peluang snapshot untuk filter ini. Silakan jalankan script daily_scan.py.</div>
+                            <div>Tidak ada peluang data scan untuk filter ini. Silakan jalankan script daily_scan.py.</div>
                         </td>
                     </tr>
                 `;
@@ -1921,22 +1982,7 @@
                 });
             }
 
-            // Headers configuration
-            let headers = [];
-            if (activeTab === "execute") {
-                headers.push(`<input type="checkbox" id="select-all-exec" onchange="toggleSelectAllExec(this)" style="cursor: pointer; transform: scale(1.2);">`);
-            }
-            if (selectedChain === "ALL") {
-                headers.push("Chain");
-            }
-
             if (activeTab === "l2" || activeTab === "l1") {
-                const suffix = isProjectionMode ? " (Proj.)" : "";
-                headers = headers.concat([
-                    "Token", "Available", "Auction Price" + suffix, "Market Price",
-                    "Auction Size" + suffix, "Market Size", "Est. Profit" + suffix, "ETA" + suffix, "Aksi"
-                ]);
-
                 // Rank trades by total market size (available * market_usd) descending, then eta_days ascending
                 displayData.sort((a, b) => {
                     const sizeA = (parseFloat(a.payload.available) || 0) * (parseFloat(a.payload.market_usd) || 0);
@@ -1949,10 +1995,6 @@
                     return etaA - etaB;
                 });
             } else {
-                headers = headers.concat([
-                    "Token", "Available", "Market Price", "Size", "Rewards", "Est. Reward", "Aksi"
-                ]);
-
                 // Rank execute by reward_usd descending
                 displayData.sort((a, b) => {
                     const rA = parseFloat(a.payload.reward_usd) || 0;
@@ -1960,13 +2002,6 @@
                     return rB - rA;
                 });
             }
-
-            // Render headers
-            headers.forEach(h => {
-                const th = document.createElement("th");
-                th.innerHTML = h;
-                headerRow.appendChild(th);
-            });
 
             // Render rows
             displayData.forEach(item => {
@@ -1996,9 +2031,9 @@
                             ${copyIconSvg}
                         </span>
                     `);
-                    cells.push(`${toCompact(availableVal)} ${p.symbol || ""}${getTrendArrow(trends.available)}`);
+                    cells.push(`${toCompact(availableVal)} ${p.symbol || ""}${getTrendArrow(trends.available, trends.available_pct)}`);
                     cells.push(toCompact(auctionUsd, true));
-                    cells.push(`${toCompact(marketUsd, true)}${getTrendArrow(trends.market_usd)}`);
+                    cells.push(`${toCompact(marketUsd, true)}${getTrendArrow(trends.market_usd, trends.market_usd_pct)}`);
                     cells.push(toCompact(availableVal * auctionUsd, true));
                     cells.push(toCompact(availableVal * marketUsd, true));
 
@@ -2013,7 +2048,7 @@
                     cells.push(`
                         <div style="display: flex; align-items: center;">
                             <span class="badge-premium" style="background: ${profitBg}; color: ${profitColor}; border-color: ${profitBorder};">${profitSign}${profitStr} (${premStr})</span>
-                            ${getTrendArrow(trends.estimated_profit_usd)}
+                            ${getTrendArrow(trends.estimated_profit_usd, trends.estimated_profit_usd_pct)}
                         </div>
                     `);
                     cells.push(`${eta.toFixed(1)} d`);
@@ -2032,14 +2067,14 @@
                             ${copyIconSvg}
                         </span>
                     `);
-                    cells.push(`${toCompact(availableVal)} ${p.symbol || ""}${getTrendArrow(trends.available)}`);
-                    cells.push(`${toCompact(marketUsd, true)}${getTrendArrow(trends.market_usd)}`);
+                    cells.push(`${toCompact(availableVal)} ${p.symbol || ""}${getTrendArrow(trends.available, trends.available_pct)}`);
+                    cells.push(`${toCompact(marketUsd, true)}${getTrendArrow(trends.market_usd, trends.market_usd_pct)}`);
                     cells.push(toCompact(size, true));
                     cells.push(`${ppm} PPM`);
                     cells.push(`
                         <div style="display: flex; align-items: center;">
                             <span class="badge-premium">${toCompact(rewardUsd, true)}</span>
-                            ${getTrendArrow(trends.reward_usd)}
+                            ${getTrendArrow(trends.reward_usd, trends.reward_usd_pct)}
                         </div>
                     `);
                 }
@@ -2060,11 +2095,11 @@
 
                 if (item.kind === "execute") {
                     actionHtml += `
-                        <button class="exec-btn" onclick="triggerExecuteOpportunity('${p.token}', ${item.chain_id}, '${p.symbol}')" title="Execute opportunity on blockchain">⚡ Execute</button>
+                        <button class="exec-btn" onclick="triggerExecuteOpportunity('${p.token}', ${item.chain_id}, '${p.symbol}')" title="Execute opportunity on blockchain">Execute</button>
                     `;
                 } else if (item.kind === "trade" && p.status === "OK") {
                     actionHtml += `
-                        <button class="exec-btn" onclick="triggerTradeOpportunity('${p.token}', ${item.chain_id}, '${p.symbol}', '${p.source_address || ""}', '${p.available_raw || "0"}', '${p.required_source_raw || "0"}')" title="Trade/Arbitrage this opportunity">⚡ Trade</button>
+                        <button class="exec-btn" onclick="triggerTradeOpportunity('${p.token}', ${item.chain_id}, '${p.symbol}', '${p.source_address || ""}', '${p.available_raw || "0"}', '${p.required_source_raw || "0"}')" title="Trade/Arbitrage this opportunity">Trade</button>
                     `;
                 }
 
@@ -2083,7 +2118,7 @@
             const body = document.getElementById("modal-body");
             const p = item.payload;
 
-            title.innerText = `Detail Snapshot: ${p.symbol || "Token"}`;
+            title.innerText = `Detail Data Scan: ${p.symbol || "Token"}`;
 
             let detailsHtml = `
                 <div class="modal-row">
@@ -2099,6 +2134,10 @@
                             <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
                         </svg>
                     </span>
+                </div>
+                <div class="modal-row">
+                    <span class="modal-label">Sumber Harga</span>
+                    <span class="modal-val" style="background: rgba(59, 130, 246, 0.15); color: #60a5fa; padding: 2px 6px; border-radius: 4px; font-weight: 600; font-size: 0.8rem;">${p.price_source || "Unknown/DEX Feed"}</span>
                 </div>
             `;
 
@@ -2144,7 +2183,7 @@
 
             detailsHtml += `
                 <div class="modal-row">
-                    <span class="modal-label">Snapshot Timestamp</span>
+                    <span class="modal-label">Waktu Scan</span>
                     <span class="modal-val">${item.timestamp}</span>
                 </div>
             `;
@@ -2655,7 +2694,8 @@
         }
 
         // Hook Buttons
-        document.getElementById("reload-btn").onclick = reloadData;
+        const reloadBtn = document.getElementById("reload-btn");
+        if (reloadBtn) reloadBtn.onclick = reloadData;
 
         // Initialize App
         loadData();
