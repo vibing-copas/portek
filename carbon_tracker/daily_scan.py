@@ -830,29 +830,31 @@ def main():
         target_chains = filtered
         print(f"[+] Syncing only: {', '.join(target_chains.keys())}")
         
-    db_path = os.getenv("DB_PATH", str(ROOT/"data/tracker.db"))
+def scan_chain_worker(name, c, skip_log_sync, force_rescan, db_path, block_chunk_cfg):
     from .storage.db import connect as db_connect, upsert_token, get_scan_progress, save_scan_progress, snapshot
-    db = db_connect(db_path)
     
-    for name, c in target_chains.items():
-        rpc_url = os.getenv(c["rpc_env"], "").strip()
-        if not rpc_url:
-            rpc_url = c.get("public_rpc", "").strip()
-            
-        if not rpc_url:
-            print(f"[-] Skipping chain {name}: RPC env var {c['rpc_env']} not set and no public fallback configured.")
-            continue
-            
-        print(f"\n[+] Connecting to {name} EVM via {rpc_url}...")
-        try:
-            w3 = connect(rpc_url)
-            controller = contract(w3, c["carbon_controller"], "CarbonController.json")
-            vortex = contract(w3, c["carbon_vortex"], "CarbonVortex.json")
-            latest = w3.eth.block_number
-        except Exception as e:
-            print(f"[-] Connection failed for {name} on {rpc_url}: {e}. Skipping this chain.")
-            continue
-            
+    rpc_url = os.getenv(c["rpc_env"], "").strip()
+    if not rpc_url:
+        rpc_url = c.get("public_rpc", "").strip()
+        
+    if not rpc_url:
+        print(f"[-] Skipping chain {name}: RPC env var {c['rpc_env']} not set and no public fallback configured.")
+        return
+
+    print(f"\n[+] Connecting to {name} EVM via {rpc_url}...")
+    db = None
+    try:
+        w3 = connect(rpc_url)
+        controller = contract(w3, c["carbon_controller"], "CarbonController.json")
+        vortex = contract(w3, c["carbon_vortex"], "CarbonVortex.json")
+        latest = w3.eth.block_number
+    except Exception as e:
+        print(f"[-] Connection failed for {name} on {rpc_url}: {e}. Skipping this chain.")
+        return
+
+    try:
+        db = db_connect(db_path)
+        
         if not skip_log_sync:
             # Determine target scan range from config/env
             start_block_env = os.getenv("START_BLOCK", "").strip()
@@ -897,7 +899,7 @@ def main():
                     ranges_to_scan.append((lookback_start, first_scanned - 1, True))
 
             # Run crawler for all ranges
-            block_chunk = int(os.getenv("BLOCK_CHUNK", str(cfg["scanner"]["block_chunk"])))
+            block_chunk = int(os.getenv("BLOCK_CHUNK", str(block_chunk_cfg)))
             tokens_info = {}
             
             for r_start, r_end, is_backfill in ranges_to_scan:
@@ -971,10 +973,9 @@ def main():
         
         if not tokens:
             print(f"[-] No tokens registered in database for {name}. Skipping opportunity scan.")
-            continue
+            return
             
         multicall = w3.eth.contract(address=Web3.to_checksum_address(MULTICALL_ADDRESS), abi=MULTICALL_ABI)
-        
         stables = STABLECOINS_MAP.get(c["chain_id"], [])
         
         try:
@@ -1000,6 +1001,81 @@ def main():
             print(f"[+] Saved opportunities snapshots for {name} to database.")
         except Exception as opportunity_err:
             print(f"[-] Failed to calculate opportunities for {name}: {opportunity_err}")
+    finally:
+        if db:
+            db.close()
+
+
+def main():
+    cfg = load_config()
+    
+    target_chains = cfg["chains"]
+    
+    # Parse CLI flags/arguments
+    args = sys.argv[1:]
+    skip_log_sync = False
+    if "--fast" in args or "--skip-log-sync" in args:
+        skip_log_sync = True
+        args = [arg for arg in args if arg not in ("--fast", "--skip-log-sync")]
+
+    force_rescan = False
+    if "--force" in args:
+        force_rescan = True
+        args = [arg for arg in args if arg != "--force"]
+
+    if args:
+        requested = [arg.lower().strip() for arg in args]
+        filtered = {name: c for name, c in cfg["chains"].items() if name in requested}
+        if not filtered:
+            available = ", ".join(cfg["chains"].keys())
+            print(f"[-] Error: None of the requested chains {requested} are configured. Available: {available}")
+            sys.exit(1)
+        target_chains = filtered
+        print(f"[+] Syncing only: {', '.join(target_chains.keys())}")
+        
+    db_path = os.getenv("DB_PATH", str(ROOT/"data/tracker.db"))
+    
+    # Pre-install npm dependencies if they don't exist, to prevent race conditions
+    node_modules_path = ROOT / "node_modules"
+    if not node_modules_path.exists():
+        print("[~] Node dependencies (node_modules) not found. Running npm install to prevent concurrency races...")
+        try:
+            import subprocess
+            npm_cmd = "npm.cmd" if sys.platform == "win32" else "npm"
+            subprocess.run([npm_cmd, "install"], cwd=str(ROOT), check=True)
+            print("[+] Node dependencies installed successfully.")
+        except Exception as e:
+            print(f"[-] Failed to pre-install node dependencies: {e}. Moving forward.")
+
+    # Initialize the database file and run schema creation/migrations
+    from .storage.db import connect as db_connect
+    db = db_connect(db_path)
+    db.close()
+
+    import concurrent.futures
+    print(f"\n[+] Starting concurrent scan for {len(target_chains)} chains...")
+    
+    block_chunk_cfg = cfg["scanner"]["block_chunk"]
+    with concurrent.futures.ThreadPoolExecutor(max_workers=len(target_chains)) as executor:
+        futures = {
+            executor.submit(
+                scan_chain_worker,
+                name,
+                c,
+                skip_log_sync,
+                force_rescan,
+                db_path,
+                block_chunk_cfg
+            ): name
+            for name, c in target_chains.items()
+        }
+        for future in concurrent.futures.as_completed(futures):
+            chain_name = futures[future]
+            try:
+                future.result()
+                print(f"[+] Chain {chain_name} finished scanning successfully.")
+            except Exception as exc:
+                print(f"[-] Chain {chain_name} generated an exception: {exc}")
 
 
 if __name__ == "__main__":

@@ -19,9 +19,10 @@ CREATE TABLE IF NOT EXISTS scan_progress(
  last_scanned_block INTEGER NOT NULL);
 '''
 
-def connect(path):
+def connect(path, timeout=60.0):
     p = Path(path); p.parent.mkdir(parents=True, exist_ok=True)
-    db = sqlite3.connect(p)
+    db = sqlite3.connect(p, timeout=timeout)
+    db.execute("PRAGMA journal_mode=WAL;")
     db.executescript(SCHEMA)
     
     # Dynamic migration to add last_trade_* columns if they don't exist

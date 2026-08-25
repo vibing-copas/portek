@@ -1937,10 +1937,10 @@
                     "Auction Size" + suffix, "Market Size", "Est. Profit" + suffix, "ETA" + suffix, "Aksi"
                 ]);
 
-                // Rank trades by total size_usd (available * auction_usd) descending, then eta_days ascending
+                // Rank trades by total market size (available * market_usd) descending, then eta_days ascending
                 displayData.sort((a, b) => {
-                    const sizeA = (parseFloat(a.payload.available) || 0) * (parseFloat(a.payload.auction_usd) || 0);
-                    const sizeB = (parseFloat(b.payload.available) || 0) * (parseFloat(b.payload.auction_usd) || 0);
+                    const sizeA = (parseFloat(a.payload.available) || 0) * (parseFloat(a.payload.market_usd) || 0);
+                    const sizeB = (parseFloat(b.payload.available) || 0) * (parseFloat(b.payload.market_usd) || 0);
                     if (sizeB !== sizeA) {
                         return sizeB - sizeA;
                     }
