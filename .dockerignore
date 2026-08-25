@@ -1,0 +1,31 @@
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Node
+node_modules/
+npm-debug.log*
+
+# Database & Environment
+.env
+data/tracker.db*
+data/*.db
+
+# IDEs/Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Git
+.git/
+.gitignore
+
+# Scratch / Temp
+scratch/
+test.txt

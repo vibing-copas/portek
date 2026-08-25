@@ -706,18 +706,386 @@
         #snapshot-select:focus {
             border-color: var(--primary);
         }
+
+        /* Mobile Topbar & Off-Canvas Drawer Styles */
+        .mobile-topbar {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--card-border);
+            padding: 0 1.25rem;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 1000;
+        }
+
+        .hamburger-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--card-border);
+            color: var(--text-main);
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .hamburger-btn:hover {
+            background: rgba(59, 130, 246, 0.15);
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .sidebar-header-mobile {
+            display: none;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .sidebar-close-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.75rem;
+            cursor: pointer;
+            line-height: 1;
+            padding: 0.25rem 0.5rem;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .sidebar-close-btn:hover {
+            color: var(--text-main);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .sidebar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.65);
+            backdrop-filter: blur(4px);
+            z-index: 1040;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .sidebar-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .snapshot-selector-container {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            padding: 0.4rem 0.8rem;
+            border-radius: 8px;
+            backdrop-filter: blur(12px);
+        }
+
+        .snap-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            white-space: nowrap;
+        }
+
+        #snapshot-select {
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid var(--card-border);
+            color: var(--text-main);
+            padding: 0.35rem 0.75rem;
+            border-radius: 6px;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            outline: none;
+            transition: border-color 0.2s;
+            min-width: 240px;
+            max-width: 280px;
+            text-overflow: ellipsis;
+        }
+
+        /* Comprehensive Responsive Media Queries */
+        @media (max-width: 1200px) {
+            main {
+                padding: 2rem 2rem;
+            }
+        }
+
+        @media (max-width: 992px) {
+            body {
+                flex-direction: column;
+            }
+
+            .mobile-topbar {
+                display: flex;
+            }
+
+            aside {
+                position: fixed;
+                top: 0;
+                bottom: 0;
+                left: -100%;
+                width: 290px;
+                max-width: 85vw;
+                z-index: 1050;
+                transition: left 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+                box-shadow: 10px 0 30px rgba(0, 0, 0, 0.5);
+                overflow-y: auto;
+            }
+
+            aside.open {
+                left: 0;
+            }
+
+            aside .logo-container {
+                display: none;
+            }
+
+            .sidebar-header-mobile {
+                display: flex;
+            }
+
+            main {
+                margin-left: 0;
+                margin-top: 60px;
+                padding: 1.5rem 1.25rem;
+                width: 100%;
+            }
+        }
+
+        @media (max-width: 768px) {
+            header {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 1.25rem;
+                margin-bottom: 1.75rem;
+            }
+
+            .header-title h1 {
+                font-size: 1.6rem;
+            }
+
+            .header-actions {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 0.75rem;
+                width: 100%;
+            }
+
+            .snapshot-selector-container {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            #snapshot-select {
+                flex: 1;
+                min-width: 0;
+                max-width: none;
+            }
+
+            .export-btn {
+                width: 100%;
+                justify-content: center;
+                padding: 0.75rem;
+            }
+
+            .controls-row {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 1rem;
+            }
+
+            .tabs {
+                width: 100%;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                padding-bottom: 0.75rem;
+                scrollbar-width: none;
+            }
+
+            .tabs::-webkit-scrollbar {
+                display: none;
+            }
+
+            .tab-btn {
+                white-space: nowrap;
+                flex-shrink: 0;
+                padding: 0.6rem 1rem;
+                font-size: 0.85rem;
+            }
+
+            .projection-panel {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .kpi-grid {
+                grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+                gap: 1rem;
+            }
+
+            .kpi-card {
+                padding: 1.25rem;
+            }
+
+            .kpi-val {
+                font-size: 1.5rem !important;
+            }
+
+            /* Table compact formatting */
+            th, td {
+                padding: 0.75rem 0.85rem;
+                font-size: 0.82rem;
+            }
+
+            .badge-premium {
+                font-size: 0.75rem;
+                padding: 0.2rem 0.4rem;
+            }
+
+            /* Modal adjustments */
+            .modal {
+                padding: 1rem;
+            }
+
+            .modal-card {
+                width: 100%;
+                max-height: 90vh;
+            }
+
+            .modal-header {
+                padding: 1rem 1.25rem;
+            }
+
+            .modal-body {
+                padding: 1.25rem;
+                gap: 1rem;
+                max-height: calc(90vh - 60px);
+                overflow-y: auto;
+            }
+
+            /* Floating batch bar for mobile */
+            .batch-bar {
+                left: 1rem;
+                right: 1rem;
+                width: auto;
+                transform: translateY(120px) translateX(0);
+                padding: 0.85rem 1rem;
+            }
+
+            .batch-bar.show {
+                transform: translateY(0) translateX(0);
+            }
+
+            .batch-bar-content {
+                width: 100%;
+                justify-content: space-between;
+                gap: 0.75rem;
+                flex-wrap: wrap;
+            }
+
+            /* Toast container mobile */
+            #toast-container {
+                left: 1rem !important;
+                right: 1rem !important;
+                bottom: 1rem !important;
+            }
+
+            .toast {
+                min-width: 0;
+                width: 100%;
+            }
+        }
+
+        @media (max-width: 480px) {
+            main {
+                padding: 1rem 0.85rem;
+            }
+
+            .kpi-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .snap-label {
+                display: none;
+            }
+
+            .modal-row {
+                gap: 0.25rem;
+            }
+
+            .modal-val {
+                font-size: 0.85rem;
+                padding: 0.4rem 0.6rem;
+            }
+        }
     </style>
 </head>
 
 <body>
+
+    <!-- Mobile Top Navigation Bar -->
+    <div class="mobile-topbar">
+        <div class="logo-container" style="margin-bottom: 0;">
+            <span class="logo-spin" style="font-size: 1.5rem;">🌀</span>
+            <span class="logo-title" style="font-size: 1.1rem;">Carbon Vortex</span>
+        </div>
+        <button id="sidebar-toggle" class="hamburger-btn" aria-label="Toggle Sidebar Navigation" onclick="toggleMobileSidebar()">
+            <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="3" y1="12" x2="21" y2="12"></line>
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+        </button>
+    </div>
+
+    <!-- Backdrop Overlay for Mobile Sidebar -->
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeMobileSidebar()"></div>
 
     <!-- Toast Notification Container -->
     <div id="toast-container"
         style="position: fixed; bottom: 2rem; right: 2rem; z-index: 10000; display: flex; flex-direction: column; gap: 0.5rem; pointer-events: none;">
     </div>
 
-    <!-- Sidebar Navigation -->
-    <aside>
+    <!-- Sidebar Navigation Drawer -->
+    <aside id="sidebar-drawer">
+        <div class="sidebar-header-mobile">
+            <div class="logo-container" style="margin-bottom: 0;">
+                <span class="logo-spin" style="font-size: 1.5rem;">🌀</span>
+                <span class="logo-title" style="font-size: 1.1rem;">Carbon Vortex</span>
+            </div>
+            <button class="sidebar-close-btn" onclick="closeMobileSidebar()">&times;</button>
+        </div>
+
         <div class="logo-container">
             <span class="logo-spin">🌀</span>
             <span class="logo-title">Carbon Vortex</span>
@@ -736,14 +1104,14 @@
                 <h1 id="network-title">ALL CHAINS</h1>
                 <p id="network-subtitle">Memuat data peluang eksekusi & perdagangan...</p>
             </div>
-            <div style="display: flex; gap: 1rem; align-items: center;">
+            <div class="header-actions">
                 <!-- Snapshot selector -->
-                <div class="snapshot-selector-container" style="display: flex; align-items: center; gap: 0.5rem; background: var(--card-bg); border: 1px solid var(--card-border); padding: 0.4rem 0.8rem; border-radius: 8px; backdrop-filter: blur(12px);">
-                    <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Tanggal Scan:</span>
+                <div class="snapshot-selector-container">
+                    <span class="snap-label">Tanggal Scan:</span>
                     <button class="snap-nav-btn" id="prev-snap-btn" onclick="navigateSnapshot(-1)" title="Scan Sebelumnya (Older - Arrow Left)">
                         ◀
                     </button>
-                    <select id="snapshot-select" onchange="onSnapshotSelectChange(this.value)" style="background: rgba(15, 23, 42, 0.8); border: 1px solid var(--card-border); color: var(--text-main); padding: 0.35rem 0.75rem; border-radius: 6px; font-family: 'Inter', sans-serif; font-size: 0.9rem; font-weight: 500; cursor: pointer; outline: none; transition: border-color 0.2s; min-width: 260px; max-width: 280px; text-overflow: ellipsis;">
+                    <select id="snapshot-select" onchange="onSnapshotSelectChange(this.value)">
                         <option value="">Memuat data scan...</option>
                     </select>
                     <button class="snap-nav-btn" id="next-snap-btn" onclick="navigateSnapshot(1)" title="Scan Berikutnya (Newer - Arrow Right)">
@@ -752,7 +1120,7 @@
                 </div>
                 
                 <button class="export-btn" onclick="exportPDF()">
-                    Export PDF
+                    <span>📄</span> Export PDF
                 </button>
             </div>
         </header>
@@ -1583,10 +1951,31 @@
             document.getElementById("projection-days-label").innerText = `+${projectionDays} Hari`;
         }
 
+        function toggleMobileSidebar() {
+            const sidebar = document.getElementById("sidebar-drawer");
+            const overlay = document.getElementById("sidebar-overlay");
+            if (sidebar && sidebar.classList.contains("open")) {
+                closeMobileSidebar();
+            } else if (sidebar && overlay) {
+                sidebar.classList.add("open");
+                overlay.classList.add("active");
+                document.body.style.overflow = "hidden";
+            }
+        }
+
+        function closeMobileSidebar() {
+            const sidebar = document.getElementById("sidebar-drawer");
+            const overlay = document.getElementById("sidebar-overlay");
+            if (sidebar) sidebar.classList.remove("open");
+            if (overlay) overlay.classList.remove("active");
+            document.body.style.overflow = "";
+        }
+
         function selectChain(cid) {
             selectedChain = cid;
             renderSidebar();
             renderDashboard();
+            closeMobileSidebar();
         }
 
         function switchTab(tabId) {
