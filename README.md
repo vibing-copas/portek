@@ -48,9 +48,40 @@ These are in `config.yaml`.
 
 Use cron/Task Scheduler, or the included `scripts/run_daily.py`. The scanner is intentionally read-only.
 
+## Telegram Bot Integration
+
+Carbon Vortex Tracker includes automatic Telegram alert notifications upon scan completion and an interactive Telegram bot.
+
+### Configuration
+
+1. Create a bot using [@BotFather](https://t.me/BotFather) on Telegram and copy the Bot Token.
+2. Get your Telegram User/Group/Channel ID using [@userinfobot](https://t.me/userinfobot) or similar.
+3. Add the following to your `.env` file:
+   ```env
+   TELEGRAM_BOT_TOKEN=123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ
+   TELEGRAM_CHAT_ID=123456789
+   TELEGRAM_MIN_DISCOUNT_PCT=0.0
+   ```
+
+### Running the Interactive Telegram Bot
+
+Run the bot polling listener service:
+```bash
+python scripts/run_telegram_bot.py
+```
+
+### Available Telegram Commands
+
+- `/summary` - View token counts, last scanned blocks, and active opportunity counts.
+- `/top [chain]` - Show top arbitrage/decay opportunities sorted by discount %.
+- `/scan [chain]` - Trigger a fast scan on demand and get immediate results.
+- `/status` - Check scanner configuration and status.
+- `/help` - Display available commands menu.
+
 ## Notes
 
 - ERC-20 metadata is read by `symbol/name/decimals`. Native ETH uses Carbon's standard `0xEeeee...` pseudo-address and is mapped to WETH only for market-price lookup.
 - Full-inventory quoting can revert because `expectedTradeInput` returns `uint128`. That is treated as a failed quote and skipped exactly as requested.
 - The simple ETA assumes the current auction continues decaying exponentially without a reset before equality. It is an estimate, not a guarantee.
 - Gas is not subtracted in V1; transaction signing/auto-execution is intentionally out of scope.
+

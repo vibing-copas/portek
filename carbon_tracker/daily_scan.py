@@ -1017,11 +1017,19 @@ def scan_chain_worker(name, c, skip_log_sync, force_rescan, db_path, block_chunk
                 
             db.commit()
             print(f"[+] Saved opportunities snapshots for {name} to database.")
+            
+            # Send Telegram alert if configured
+            try:
+                from .telegram_bot import send_opportunity_alert
+                send_opportunity_alert(name, opportunities)
+            except Exception as tg_err:
+                print(f"[!] Telegram alert dispatch skipped or failed: {tg_err}")
         except Exception as opportunity_err:
             print(f"[-] Failed to calculate opportunities for {name}: {opportunity_err}")
     finally:
         if db:
             db.close()
+
 
 
 def main():
