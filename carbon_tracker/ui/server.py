@@ -321,6 +321,63 @@ async def migrate_db(request: Request, x_migration_secret: str = Header(None)):
         "table_stats": stats
     }
 
+@app.get("/api/admin/find-db")
+def find_db_files():
+    """Diagnostic endpoint to find all .db files on disk (including attached volume paths) and display snapshot stats."""
+    search_paths = ["/data", "/app/data", "/mnt", "/tmp", str(ROOT / "data"), str(Path(DB_PATH).parent)]
+    env_db = os.getenv("DB_PATH")
+    if env_db:
+        search_paths.append(str(Path(env_db).parent))
+
+    found_files = {}
+    seen = set()
+
+    for p_str in search_paths:
+        p = Path(p_str)
+        if not p.exists() or not p.is_dir():
+            continue
+        try:
+            for f in p.glob("**/*.db"):
+                real_p = str(f.resolve())
+                if real_p in seen:
+                    continue
+                seen.add(real_p)
+
+                stat_info = f.stat()
+                file_size_mb = round(stat_info.st_size / (1024 * 1024), 2)
+                
+                db_stats = {"size_mb": file_size_mb, "path": real_p}
+                try:
+                    conn = sqlite3.connect(real_p, timeout=5.0)
+                    c = conn.cursor()
+                    tables = [r[0] for r in c.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()]
+                    db_stats["tables"] = tables
+                    if "snapshots" in tables:
+                        s_cnt = c.execute("SELECT COUNT(*) FROM snapshots").fetchone()[0]
+                        min_ts = c.execute("SELECT MIN(ts) FROM snapshots").fetchone()[0]
+                        max_ts = c.execute("SELECT MAX(ts) FROM snapshots").fetchone()[0]
+                        
+                        from datetime import datetime, timezone
+                        db_stats["snapshots_count"] = s_cnt
+                        db_stats["oldest_snapshot"] = datetime.fromtimestamp(min_ts, timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC') if min_ts else None
+                        db_stats["newest_snapshot"] = datetime.fromtimestamp(max_ts, timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC') if max_ts else None
+                    if "token_registry" in tables:
+                        t_cnt = c.execute("SELECT COUNT(*) FROM token_registry").fetchone()[0]
+                        db_stats["token_count"] = t_cnt
+                    conn.close()
+                except Exception as db_err:
+                    db_stats["error"] = str(db_err)
+
+                found_files[real_p] = db_stats
+        except Exception as err:
+            found_files[p_str] = {"error": str(err)}
+
+    return {
+        "active_DB_PATH": DB_PATH,
+        "env_DB_PATH": os.getenv("DB_PATH"),
+        "found_database_files": found_files
+    }
+
 @app.get("/", response_class=HTMLResponse)
 def read_root():
     index_file = TEMPLATES_DIR / "index.html"

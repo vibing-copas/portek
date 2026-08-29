@@ -137,10 +137,11 @@ def format_pct(val: Optional[float]) -> str:
 def format_table_report(
     title: str,
     items: List[Dict[str, Any]],
-    avail_changes: Optional[List[Dict[str, Any]]] = None
+    avail_changes: Optional[List[Dict[str, Any]]] = None,
+    eta_reached: Optional[List[Dict[str, Any]]] = None
 ) -> str:
     """Format combined L1 and L2 trade opportunities into a clean ASCII / Monospace HTML table (<pre>)."""
-    if not items and not avail_changes:
+    if not items and not avail_changes and not eta_reached:
         return f"<b>{title}</b>\n\nNo active trade opportunities found."
 
     header_text = f"<b>{title}</b>\n"
@@ -152,12 +153,29 @@ def format_table_report(
             changed_tokens.add(chg.get("token", "").lower())
             changed_tokens.add(chg.get("symbol", "").upper())
 
+    eta_tokens = set()
+    if eta_reached:
+        for e in eta_reached:
+            eta_tokens.add(e.get("token", "").lower())
+            eta_tokens.add(str(e.get("symbol", "")).upper())
+
     for item in items:
         symbol = str(item.get("symbol", "UNK")).upper()
-        is_changed = (item.get("token", "").lower() in changed_tokens) or (symbol in changed_tokens)
-        tkn_str = f"{symbol}*" if is_changed else symbol
-        if len(tkn_str) > 7:
-            tkn_str = tkn_str[:7]
+        t_addr = item.get("token", "").lower()
+        is_changed = (t_addr in changed_tokens) or (symbol in changed_tokens)
+        is_eta = (t_addr in eta_tokens) or (symbol in eta_tokens)
+
+        prefix = ""
+        if is_changed and is_eta:
+            prefix = "*🎯"
+        elif is_changed:
+            prefix = "*"
+        elif is_eta:
+            prefix = "🎯"
+
+        tkn_str = f"{symbol}{prefix}"
+        if len(tkn_str) > 8:
+            tkn_str = tkn_str[:8]
 
         # Available
         avail_amt = item.get("available")
@@ -250,6 +268,15 @@ def format_table_report(
             
         full_msg += "\n".join(chg_lines)
 
+    if eta_reached:
+        eta_lines = ["\n<b>🎯 Newly Reached ETA / Fair Price:</b>"]
+        for e in eta_reached:
+            sym = e.get("symbol", "TOKEN")
+            disc = e.get("discount_pct", 0.0) or 0.0
+            eta_lines.append(f"• <b>{sym}</b>: Reached Fair Price (Discount: {format_pct(disc)})")
+            
+        full_msg += "\n".join(eta_lines)
+
     return full_msg
 
 
@@ -261,11 +288,16 @@ def is_valid_trade_opportunity(item: Dict[str, Any]) -> bool:
     return status != "SKIP" and (avail > 0 or avail_raw > 0)
 
 
-def detect_availability_changes(db_path: str, chain_id: int, current_opportunities: Dict[str, Any]) -> List[Dict[str, Any]]:
-    """Compare current scan opportunities against previous snapshot in DB to detect inventory/USD changes."""
+def detect_snapshot_events(db_path: str, chain_id: int, current_opportunities: Dict[str, Any]) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+    """
+    Compare current scan opportunities against previous snapshot in DB.
+    Returns (avail_changes, eta_reached).
+    - avail_changes: list of dicts describing tokens with supply balance changes
+    - eta_reached: list of trade items that JUST reached ETA/fairprice in this scan
+    """
     p = Path(db_path)
     if not p.exists():
-        return []
+        return [], []
 
     try:
         db = db_connect(db_path)
@@ -276,9 +308,16 @@ def detect_availability_changes(db_path: str, chain_id: int, current_opportuniti
             ).fetchall()
         ]
 
+        current_items = [
+            i for i in (current_opportunities.get("trade_l1", []) + current_opportunities.get("trade_l2", []))
+            if is_valid_trade_opportunity(i)
+        ]
+
         if len(timestamps) < 2:
             db.close()
-            return []
+            # If initial scan with no prior snapshots, treat tokens with eta_days <= 0 as newly reached ETA
+            eta_reached = [item for item in current_items if item.get("eta_days") is not None and item.get("eta_days") <= 0]
+            return [], eta_reached
 
         prev_ts = timestamps[1]
 
@@ -298,12 +337,9 @@ def detect_availability_changes(db_path: str, chain_id: int, current_opportuniti
 
         db.close()
 
-        current_items = [
-            i for i in (current_opportunities.get("trade_l1", []) + current_opportunities.get("trade_l2", []))
-            if is_valid_trade_opportunity(i)
-        ]
-        
-        changes = []
+        avail_changes = []
+        eta_reached = []
+
         for item in current_items:
             addr = item.get("token", "").lower()
             if not addr:
@@ -311,17 +347,20 @@ def detect_availability_changes(db_path: str, chain_id: int, current_opportuniti
 
             curr_avail = float(item.get("available") or 0.0)
             curr_usd = float(item.get("market_value_usd") or item.get("size_usd") or 0.0)
+            curr_eta = item.get("eta_days")
 
             if addr in prev_map:
                 prev_item = prev_map[addr]
                 prev_avail = float(prev_item.get("available") or 0.0)
                 prev_usd = float(prev_item.get("market_value_usd") or prev_item.get("size_usd") or 0.0)
+                prev_eta = prev_item.get("eta_days")
 
                 delta_avail = curr_avail - prev_avail
                 delta_usd = curr_usd - prev_usd
 
+                # Condition 1: Supply token available amount changed
                 if abs(delta_avail) >= 1e-5:
-                    changes.append({
+                    avail_changes.append({
                         "token": addr,
                         "symbol": item.get("symbol", addr[:6]),
                         "delta_amt": delta_avail,
@@ -330,14 +369,36 @@ def detect_availability_changes(db_path: str, chain_id: int, current_opportuniti
                         "prev_avail": prev_avail
                     })
 
-        return changes
+                # Condition 2: Token JUST reached ETA / fairprice (prev_eta > 0 -> curr_eta <= 0)
+                if (prev_eta is not None and prev_eta > 0) and (curr_eta is not None and curr_eta <= 0):
+                    eta_reached.append(item)
+            else:
+                if curr_avail > 0:
+                    avail_changes.append({
+                        "token": addr,
+                        "symbol": item.get("symbol", addr[:6]),
+                        "delta_amt": curr_avail,
+                        "delta_usd": curr_usd,
+                        "curr_avail": curr_avail,
+                        "prev_avail": 0.0
+                    })
+                    if curr_eta is not None and curr_eta <= 0:
+                        eta_reached.append(item)
+
+        return avail_changes, eta_reached
     except Exception as e:
-        logger.error(f"Error detecting availability changes: {e}")
-        return []
+        logger.error(f"Error detecting snapshot events: {e}")
+        return [], []
+
+
+def detect_availability_changes(db_path: str, chain_id: int, current_opportunities: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Backwards compatibility helper wrapper for detect_snapshot_events."""
+    avail_changes, _ = detect_snapshot_events(db_path, chain_id, current_opportunities)
+    return avail_changes
 
 
 def send_opportunity_alert(chain_name: str, opportunities: Dict[str, Any]) -> bool:
-    """Evaluate scan results and dispatch Telegram alert if profitable opportunities or availability changes exist."""
+    """Evaluate scan results and dispatch Telegram alert ONLY if supply changed or token just reached ETA/fairprice."""
     tg_cfg = get_telegram_config()
     if not tg_cfg["is_configured"]:
         return False
@@ -346,7 +407,11 @@ def send_opportunity_alert(chain_name: str, opportunities: Dict[str, Any]) -> bo
     cfg = load_config()
     chain_id = cfg["chains"].get(chain_name.lower(), {}).get("chain_id")
 
-    avail_changes = detect_availability_changes(db_path, chain_id, opportunities) if chain_id else []
+    avail_changes, eta_reached = detect_snapshot_events(db_path, chain_id, opportunities) if chain_id else ([], [])
+
+    # ONLY send notification if supply changed OR token just reached ETA/fairprice!
+    if not avail_changes and not eta_reached:
+        return False
 
     min_discount = tg_cfg["min_discount_pct"]
     all_trade_items = [
@@ -354,19 +419,16 @@ def send_opportunity_alert(chain_name: str, opportunities: Dict[str, Any]) -> bo
         if is_valid_trade_opportunity(r)
     ]
     
-    changed_addrs = {c["token"].lower() for c in avail_changes}
+    event_addrs = {c["token"].lower() for c in avail_changes}.union({e.get("token", "").lower() for e in eta_reached})
     matching_items = [
         r for r in all_trade_items
-        if (r.get("discount_pct") or 0.0) >= min_discount or r.get("token", "").lower() in changed_addrs
+        if r.get("token", "").lower() in event_addrs or (r.get("discount_pct") or 0.0) >= min_discount
     ]
 
     matching_items.sort(key=lambda x: x.get("discount_pct", -999.0) or -999.0, reverse=True)
 
-    if not matching_items and not avail_changes:
-        return False
-
     title = f"🚀 Carbon Vortex Alert [{chain_name.upper()}]"
-    table_msg = format_table_report(title, matching_items, avail_changes)
+    table_msg = format_table_report(title, matching_items, avail_changes, eta_reached)
     return send_telegram_message(table_msg)
 
 
@@ -526,7 +588,8 @@ def get_execute_opportunities(chain_filter: Optional[str] = None, limit: int = 1
                     payload = json.loads(payload_str)
                     avail_amt = float(payload.get("available") or 0.0)
                     avail_raw = int(payload.get("available_raw") or 0)
-                    if avail_amt > 0 or avail_raw > 0:
+                    reason = payload.get("reason", "")
+                    if (avail_amt > 0 or avail_raw > 0) and reason not in ("targetToken", "finalTargetToken"):
                         items.append(payload)
                 except Exception:
                     pass

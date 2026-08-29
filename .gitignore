@@ -18,8 +18,9 @@ yarn-error.log*
 
 # Database & Environment
 .env
-data/tracker.db
-data/tracker.db-journal
+data/*.db*
+data/*.txt
+*.db
 
 # IDEs/Editors
 .idea/

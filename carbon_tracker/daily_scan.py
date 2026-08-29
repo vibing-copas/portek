@@ -487,7 +487,7 @@ def estimate_carbon_prices_fallback(w3, controller, multicall, chain_id, tokens)
         success, data = results3[idx]
         if success and data:
             try:
-                target_amount = w3.codec.decode(["uint128"], data)[0]
+                target_amount = w3.codec.decode(["uint256"], data)[0]
                 rate = (target_amount / 10**tgt_dec) / (total_src / 10**src_dec)
                 if tgt in prices:
                     prices[src] = rate * prices[tgt]
@@ -500,7 +500,7 @@ def estimate_carbon_prices_fallback(w3, controller, multicall, chain_id, tokens)
                 idx = combo_metadata.index((src, tgt, src_dec, tgt_dec, total_src))
                 success, data = results3[idx]
                 if success and data:
-                    target_amount = w3.codec.decode(["uint128"], data)[0]
+                    target_amount = w3.codec.decode(["uint256"], data)[0]
                     rate = (target_amount / 10**tgt_dec) / (total_src / 10**src_dec)
                     prices[src] = rate * prices[tgt]
             except Exception:
@@ -781,13 +781,14 @@ def calculate_opportunities(chain_id, w3, controller, vortex, multicall, tokens,
         else:
             price_source = "Unknown/DEX Feed"
 
-        ex_row = execute_row_multicall(t_addr, meta, t_data["available_execute_raw"], ppm, market)
-        ex_row["price_source"] = price_source
-        if m_entry.get("is_fallback"):
-            ex_row["symbol"] = f"{symbol} ⚡"
-        execute_list.append(ex_row)
-        
         cls = classify(checksum_token, ctx)
+        if cls["reason"] not in ("finalTargetToken", "targetToken"):
+            ex_row = execute_row_multicall(t_addr, meta, t_data["available_execute_raw"], ppm, market)
+            ex_row["price_source"] = price_source
+            if m_entry.get("is_fallback"):
+                ex_row["symbol"] = f"{symbol} ⚡"
+            execute_list.append(ex_row)
+
         if t_data["quote_status"] == "SKIP" or not cls["source"] or not cls["target"]:
             tr_row = {
                 "token": t_addr,
