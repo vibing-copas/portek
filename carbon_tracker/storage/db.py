@@ -72,6 +72,7 @@ def save_scan_progress(db, chain_id, first_block, last_block):
     db.execute('INSERT OR REPLACE INTO scan_progress (chain_id, first_scanned_block, last_scanned_block) VALUES(?,?,?)', (chain_id, fb, lb))
 
 def upsert_token(db, chain_id, addr, meta, info):
+    addr = str(addr).lower()
     db.execute('''
     INSERT INTO token_registry (
         chain_id, token_address, symbol, decimals, 
@@ -100,5 +101,6 @@ def upsert_token(db, chain_id, addr, meta, info):
     ))
 
 def snapshot(db, ts, chain_id, kind, level, token, payload):
+    token = str(token).lower()
     db.execute('INSERT INTO snapshots(ts,chain_id,kind,level,token_address,payload_json) VALUES(?,?,?,?,?,?)',
                (ts,chain_id,kind,level,token,json.dumps(payload)))

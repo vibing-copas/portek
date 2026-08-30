@@ -190,10 +190,16 @@ def get_data(run_id: int = None):
                 
         conn.close()
         
-        # 5. Build results with comparisons
+        # 5. Build results with comparisons and deduplicate by (cid, kind, level, token_addr.lower())
         results = []
+        seen_keys = set()
         for r in latest_rows:
             cid, kind, level, token_addr, payload_json, ts = r
+            dedup_key = (cid, kind, level, str(token_addr).lower())
+            if dedup_key in seen_keys:
+                continue
+            seen_keys.add(dedup_key)
+
             try:
                 payload = json.loads(payload_json)
             except Exception:
