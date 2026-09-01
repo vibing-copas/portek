@@ -1761,13 +1761,18 @@
         let selectedDayLabel = null;
 
         async function loadData() {
-            document.getElementById("network-subtitle").innerText = "Mengambil daftar hasil pindai...";
+            document.getElementById("network-subtitle").innerText = "Mengambil data scan...";
             try {
-                // 1. Fetch runs
-                const runsRes = await fetch("/api/runs");
+                // Fetch runs list and latest snapshot data in PARALLEL for instant loading
+                const [runsRes, dataRes] = await Promise.all([
+                    fetch("/api/runs"),
+                    fetch("/api/data")
+                ]);
+
                 snapshotRuns = await runsRes.json();
+                const data = await dataRes.json();
+                rawData = data.filter(r => (parseFloat(r.payload.available) || 0) > 0);
                 
-                // 2. Populate select element
                 const selectEl = document.getElementById("snapshot-select");
                 selectEl.innerHTML = "";
                 
@@ -1797,16 +1802,15 @@
                     groupedRunsByDay[dayLabel].push(run);
                 });
                 
-                snapshotDays = Object.keys(groupedRunsByDay); // Order preserved from snapshotRuns descending
+                snapshotDays = Object.keys(groupedRunsByDay);
                 
                 snapshotDays.forEach(day => {
                     const option = document.createElement("option");
                     option.value = day;
-                    option.innerText = day; // Jumlah snapshot dihapus
+                    option.innerText = day;
                     selectEl.appendChild(option);
                 });
                 
-                // Default to the first (latest) day if not already set or not in current list
                 if (!selectedDayLabel || !groupedRunsByDay[selectedDayLabel]) {
                     selectedDayLabel = snapshotDays[0];
                 }
@@ -1816,11 +1820,11 @@
                 
                 updateSnapshotNavButtons();
                 
-                // 3. Load actual data for selected run
-                await loadSnapshotData();
+                renderSidebar();
+                renderDashboard();
             } catch (err) {
-                console.error("Gagal mengambil daftar hasil pindai:", err);
-                document.getElementById("network-subtitle").innerText = "Gagal memuat daftar scan dari server.";
+                console.error("Gagal mengambil data scan:", err);
+                document.getElementById("network-subtitle").innerText = "Gagal memuat data scan dari server.";
             }
         }
 
