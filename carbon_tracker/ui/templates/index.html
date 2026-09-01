@@ -1220,9 +1220,8 @@
         <div class="controls-row"
             style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
             <div class="tabs" style="margin-bottom: 0;">
-                <button class="tab-btn active" onclick="switchTab('l2')">Level 2 Trades</button>
-                <button class="tab-btn" onclick="switchTab('l1')">Level 1 Trades</button>
-                <button class="tab-btn" onclick="switchTab('execute')">Execute Opportunities</button>
+                <button class="tab-btn active" onclick="switchTab('eta')">⏱️ ETA Terdekat</button>
+                <button class="tab-btn" onclick="switchTab('size')">💎 Size Terbesar</button>
             </div>
 
             <div class="projection-panel"
@@ -1673,7 +1672,7 @@
 
         let rawData = [];
         let selectedChain = "ALL";
-        let activeTab = "l2";
+        let activeTab = "eta";
         let snapshotRuns = [];
         let selectedRunId = null;
 
@@ -1982,7 +1981,7 @@
             activeTab = tabId;
             document.querySelectorAll(".tab-btn").forEach(btn => {
                 btn.classList.remove("active");
-                if (btn.innerText.toLowerCase().includes(tabId)) {
+                if (btn.getAttribute("onclick") && btn.getAttribute("onclick").includes(`'${tabId}'`)) {
                     btn.classList.add("active");
                 }
             });
@@ -2151,17 +2150,8 @@
             // Render KPI section for Execute
             renderKpis(filtered);
 
-            // Filter by active Tab
-            let tabFiltered = [];
-            if (activeTab === "l2") {
-                tabFiltered = filtered.filter(r => r.kind === "trade" && r.level === 2);
-            } else if (activeTab === "l1") {
-                tabFiltered = filtered.filter(r => r.kind === "trade" && r.level === 1);
-            } else if (activeTab === "execute") {
-                tabFiltered = filtered.filter(r => r.kind === "execute");
-            }
-
-            renderTable(tabFiltered);
+            // Filter data by chain
+            renderTable(filtered);
         }
 
         function renderKpis(data) {
@@ -2295,25 +2285,18 @@
             tbody.innerHTML = "";
 
             // Headers configuration
-            let headers = [];
-            if (activeTab === "execute") {
-                headers.push(`<input type="checkbox" id="select-all-exec" onchange="toggleSelectAllExec(this)" style="cursor: pointer; transform: scale(1.2);">`);
-            }
+            let headers = [
+                `<input type="checkbox" id="select-all-exec" onchange="toggleSelectAllExec(this)" style="cursor: pointer; transform: scale(1.2);" title="Pilih Semua Execute">`
+            ];
             if (selectedChain === "ALL") {
                 headers.push("Chain");
             }
 
-            if (activeTab === "l2" || activeTab === "l1") {
-                const suffix = isProjectionMode ? " (Proj.)" : "";
-                headers = headers.concat([
-                    "Token", "Available", "Auction Price" + suffix, "Market Price",
-                    "Auction Size" + suffix, "Market Size", "Est. Profit" + suffix, "ETA" + suffix, "Aksi"
-                ]);
-            } else {
-                headers = headers.concat([
-                    "Token", "Available", "Market Price", "Size", "Rewards", "Est. Reward", "Aksi"
-                ]);
-            }
+            const suffix = isProjectionMode ? " (Proj.)" : "";
+            headers = headers.concat([
+                "Tipe", "Token", "Available", "Market Price",
+                "Size" + suffix, "Est. Profit / Reward" + suffix, "ETA" + suffix, "Aksi"
+            ]);
 
             // Render headers
             headers.forEach(h => {
@@ -2335,18 +2318,18 @@
             }
 
             // Project data if projection mode is active
-            let displayData = data;
-            if (isProjectionMode && (activeTab === "l2" || activeTab === "l1")) {
-                displayData = data.map(item => {
-                    const newItem = { ...item };
-                    const p = { ...item.payload };
+            let displayData = data.map(item => {
+                if (item.kind !== "trade") return item;
+                const newItem = { ...item };
+                const p = { ...item.payload };
 
-                    const availableVal = parseFloat(p.available) || 0;
-                    const auctionUsd = parseFloat(p.auction_usd) || 0;
-                    const marketUsd = parseFloat(p.market_usd) || 0;
-                    const halfLife = parseFloat(p.half_life_seconds) || 86400;
-                    const eta = parseFloat(p.eta_days) || 0;
+                const availableVal = parseFloat(p.available) || 0;
+                const auctionUsd = parseFloat(p.auction_usd) || 0;
+                const marketUsd = parseFloat(p.market_usd) || 0;
+                const halfLife = parseFloat(p.half_life_seconds) || 86400;
+                const eta = parseFloat(p.eta_days) || 0;
 
+                if (isProjectionMode) {
                     const decayTimeSeconds = projectionDays * 86400;
                     const projectedAuctionUsd = auctionUsd * Math.pow(2, -decayTimeSeconds / halfLife);
 
@@ -2365,30 +2348,32 @@
                     p.estimated_profit_usd = projectedProfit;
                     p.premium_pct = projectedPremium;
                     p.eta_days = projectedEta;
+                }
 
-                    newItem.payload = p;
-                    return newItem;
-                });
-            }
+                newItem.payload = p;
+                return newItem;
+            });
 
-            if (activeTab === "l2" || activeTab === "l1") {
-                // Rank trades by total market size (available * market_usd) descending, then eta_days ascending
+            // Sorting logic: ETA Terdekat vs Size Terbesar
+            if (activeTab === "eta") {
                 displayData.sort((a, b) => {
-                    const sizeA = (parseFloat(a.payload.available) || 0) * (parseFloat(a.payload.market_usd) || 0);
-                    const sizeB = (parseFloat(b.payload.available) || 0) * (parseFloat(b.payload.market_usd) || 0);
-                    if (sizeB !== sizeA) {
-                        return sizeB - sizeA;
-                    }
-                    const etaA = parseFloat(a.payload.eta_days) || 9999;
-                    const etaB = parseFloat(b.payload.eta_days) || 9999;
+                    const etaA = a.kind === "trade" ? (parseFloat(a.payload.eta_days) !== undefined && !isNaN(a.payload.eta_days) ? parseFloat(a.payload.eta_days) : 9999) : 9999;
+                    const etaB = b.kind === "trade" ? (parseFloat(b.payload.eta_days) !== undefined && !isNaN(b.payload.eta_days) ? parseFloat(b.payload.eta_days) : 9999) : 9999;
+                    if (etaA !== etaB) return etaA - etaB;
+
+                    const sizeA = a.kind === "trade" ? (parseFloat(a.payload.available) || 0) * (parseFloat(a.payload.market_usd) || 0) : (parseFloat(a.payload.size_usd) || 0);
+                    const sizeB = b.kind === "trade" ? (parseFloat(b.payload.available) || 0) * (parseFloat(b.payload.market_usd) || 0) : (parseFloat(b.payload.size_usd) || 0);
+                    return sizeB - sizeA;
+                });
+            } else if (activeTab === "size") {
+                displayData.sort((a, b) => {
+                    const sizeA = a.kind === "trade" ? (parseFloat(a.payload.available) || 0) * (parseFloat(a.payload.market_usd) || 0) : (parseFloat(a.payload.size_usd) || 0);
+                    const sizeB = b.kind === "trade" ? (parseFloat(b.payload.available) || 0) * (parseFloat(b.payload.market_usd) || 0) : (parseFloat(b.payload.size_usd) || 0);
+                    if (sizeB !== sizeA) return sizeB - sizeA;
+
+                    const etaA = a.kind === "trade" ? (parseFloat(a.payload.eta_days) !== undefined && !isNaN(a.payload.eta_days) ? parseFloat(a.payload.eta_days) : 9999) : 9999;
+                    const etaB = b.kind === "trade" ? (parseFloat(b.payload.eta_days) !== undefined && !isNaN(b.payload.eta_days) ? parseFloat(b.payload.eta_days) : 9999) : 9999;
                     return etaA - etaB;
-                });
-            } else {
-                // Rank execute by reward_usd descending
-                displayData.sort((a, b) => {
-                    const rA = parseFloat(a.payload.reward_usd) || 0;
-                    const rB = parseFloat(b.payload.reward_usd) || 0;
-                    return rB - rA;
                 });
             }
 
@@ -2398,35 +2383,63 @@
                 const p = item.payload;
 
                 let cells = [];
-                if (activeTab === "execute") {
+
+                // Checkbox
+                if (item.kind === "execute") {
                     cells.push(`<input type="checkbox" class="exec-row-select" data-token="${p.token}" data-chain="${item.chain_id}" data-symbol="${p.symbol}" data-size="${p.size_usd || 0}" onchange="updateSelectedExecCount()" style="cursor: pointer; transform: scale(1.1);">`);
+                } else {
+                    cells.push(`<span style="opacity: 0.3;">-</span>`);
                 }
+
+                // Chain
                 if (selectedChain === "ALL") {
                     cells.push(CHAIN_NAMES[item.chain_id] || `Chain ${item.chain_id}`);
                 }
 
-                if (activeTab === "l2" || activeTab === "l1") {
-                    const availableVal = parseFloat(p.available) || 0;
-                    const auctionUsd = parseFloat(p.auction_usd) || 0;
-                    const marketUsd = parseFloat(p.market_usd) || 0;
-                    const premium = parseFloat(p.premium_pct) || 0;
+                // Tipe Badge
+                let typeBadge = "";
+                if (item.kind === "trade") {
+                    if (item.level === 2) {
+                        typeBadge = `<span style="background: rgba(59, 130, 246, 0.15); color: #60a5fa; padding: 0.2rem 0.5rem; border-radius: 6px; font-weight: 600; font-size: 0.75rem; border: 1px solid rgba(59, 130, 246, 0.3);">L2 Trade</span>`;
+                    } else {
+                        typeBadge = `<span style="background: rgba(168, 85, 247, 0.15); color: #c084fc; padding: 0.2rem 0.5rem; border-radius: 6px; font-weight: 600; font-size: 0.75rem; border: 1px solid rgba(168, 85, 247, 0.3);">L1 Trade</span>`;
+                    }
+                } else {
+                    typeBadge = `<span style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; padding: 0.2rem 0.5rem; border-radius: 6px; font-weight: 600; font-size: 0.75rem; border: 1px solid rgba(245, 158, 11, 0.3);">Execute</span>`;
+                }
+                cells.push(typeBadge);
+
+                // Token Symbol & address
+                cells.push(`
+                    <span class="token-symbol-clickable" onclick="copyTokenAddress('${p.token}', '${p.symbol}')" title="Click to copy contract address: ${p.token}">
+                        ${p.symbol || ""}
+                        ${copyIconSvg}
+                    </span>
+                `);
+
+                const availableVal = parseFloat(p.available) || 0;
+                const marketUsd = parseFloat(p.market_usd) || 0;
+                const trends = item.trends || {};
+
+                // Available
+                cells.push(`${toCompact(availableVal)} ${p.symbol || ""}${getTrendArrow(trends.available, trends.available_pct)}`);
+
+                // Market Price
+                cells.push(`${toCompact(marketUsd, true)}${getTrendArrow(trends.market_usd, trends.market_usd_pct)}`);
+
+                // Size (USD)
+                let itemSize = 0;
+                if (item.kind === "trade") {
+                    itemSize = availableVal * marketUsd;
+                } else {
+                    itemSize = parseFloat(p.size_usd) || 0;
+                }
+                cells.push(toCompact(itemSize, true));
+
+                // Est. Profit / Reward
+                if (item.kind === "trade") {
                     const profit = parseFloat(p.estimated_profit_usd) || 0;
-                    const eta = parseFloat(p.eta_days) || 0;
-                    const trends = item.trends || {};
-
-                    cells.push(`
-                        <span class="token-symbol-clickable" onclick="copyTokenAddress('${p.token}', '${p.symbol}')" title="Click to copy contract address: ${p.token}">
-                            ${p.symbol || ""}
-                            ${copyIconSvg}
-                        </span>
-                    `);
-                    cells.push(`${toCompact(availableVal)} ${p.symbol || ""}${getTrendArrow(trends.available, trends.available_pct)}`);
-                    cells.push(toCompact(auctionUsd, true));
-                    cells.push(`${toCompact(marketUsd, true)}${getTrendArrow(trends.market_usd, trends.market_usd_pct)}`);
-                    cells.push(toCompact(availableVal * auctionUsd, true));
-                    cells.push(toCompact(availableVal * marketUsd, true));
-
-                    // Highlight profit and embed premium
+                    const premium = parseFloat(p.premium_pct) || 0;
                     const profitSign = profit >= 0 ? "+" : "-";
                     const profitStr = toCompact(Math.abs(profit), true);
                     const premStr = formatPremium(premium);
@@ -2440,32 +2453,23 @@
                             ${getTrendArrow(trends.estimated_profit_usd, trends.estimated_profit_usd_pct)}
                         </div>
                     `);
-                    cells.push(`${eta.toFixed(1)} d`);
                 } else {
-                    const availableVal = parseFloat(p.available) || 0;
-                    const marketUsd = parseFloat(p.market_usd) || 0;
-                    const size = parseFloat(p.size_usd) || 0;
-                    const ppm = parseInt(p.ppm) || 0;
-                    const reward = parseFloat(p.reward) || 0;
                     const rewardUsd = parseFloat(p.reward_usd) || 0;
-                    const trends = item.trends || {};
-
-                    cells.push(`
-                        <span class="token-symbol-clickable" onclick="copyTokenAddress('${p.token}', '${p.symbol}')" title="Click to copy contract address: ${p.token}">
-                            ${p.symbol || ""}
-                            ${copyIconSvg}
-                        </span>
-                    `);
-                    cells.push(`${toCompact(availableVal)} ${p.symbol || ""}${getTrendArrow(trends.available, trends.available_pct)}`);
-                    cells.push(`${toCompact(marketUsd, true)}${getTrendArrow(trends.market_usd, trends.market_usd_pct)}`);
-                    cells.push(toCompact(size, true));
-                    cells.push(`${ppm} PPM`);
+                    const ppm = parseInt(p.ppm) || 0;
                     cells.push(`
                         <div style="display: flex; align-items: center;">
-                            <span class="badge-premium">${toCompact(rewardUsd, true)}</span>
+                            <span class="badge-premium" style="background: rgba(245, 158, 11, 0.1); color: var(--amber); border-color: rgba(245, 158, 11, 0.2);">${toCompact(rewardUsd, true)} (${ppm} PPM)</span>
                             ${getTrendArrow(trends.reward_usd, trends.reward_usd_pct)}
                         </div>
                     `);
+                }
+
+                // ETA
+                if (item.kind === "trade") {
+                    const eta = parseFloat(p.eta_days) || 0;
+                    cells.push(`${eta.toFixed(1)} d`);
+                } else {
+                    cells.push(`<span style="color: var(--emerald); font-weight: 600; font-size: 0.85rem;">⚡ Instant</span>`);
                 }
 
                 // Render regular cells
