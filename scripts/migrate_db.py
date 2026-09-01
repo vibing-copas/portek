@@ -36,22 +36,29 @@ def main():
     compressed_mb = len(compressed_bytes) / (1024 * 1024)
     print(f"[+] Compressed payload using gzip: {file_size_mb:.2f} MB -> {compressed_mb:.2f} MB")
     
+    import base64
     CHUNK_SIZE = 250 * 1024  # 250 KB per chunk
     chunks = [compressed_bytes[i:i + CHUNK_SIZE] for i in range(0, len(compressed_bytes), CHUNK_SIZE)]
     total_chunks = len(chunks)
-    chunk_endpoint = args.url.rstrip("/") + "/api/admin/upload-db-chunk"
+    chunk_endpoint = args.url.rstrip("/") + "/api/admin/upload-db-chunk-json"
     
-    print(f"[+] Uploading database in {total_chunks} small chunks (250 KB each) to Railway...")
+    print(f"[+] Uploading database in {total_chunks} small Base64 JSON chunks to Railway...")
     
     for idx, chunk_data in enumerate(chunks):
+        b64_str = base64.b64encode(chunk_data).decode("utf-8")
+        payload = {
+            "secret": args.secret,
+            "chunk_index": idx,
+            "total_chunks": total_chunks,
+            "data_b64": b64_str
+        }
+        json_bytes = json.dumps(payload).encode("utf-8")
+        
         req = urllib.request.Request(
             chunk_endpoint,
-            data=chunk_data,
+            data=json_bytes,
             headers={
-                "X-Migration-Secret": args.secret,
-                "X-Chunk-Index": str(idx),
-                "X-Total-Chunks": str(total_chunks),
-                "Content-Type": "application/octet-stream"
+                "Content-Type": "application/json"
             },
             method="POST"
         )
@@ -60,7 +67,7 @@ def main():
                 res_body = resp.read().decode("utf-8")
                 res_data = json.loads(res_body)
                 if res_data.get("status") == "success":
-                    print(f"\n[✓] Chunked Migration Successful! (All {total_chunks} chunks reassembled on Railway)")
+                    print(f"\n[✓] Chunked JSON Migration Successful! (All {total_chunks} chunks reassembled on Railway)")
                     print(json.dumps(res_data, indent=2))
                 else:
                     print(f"  [+] Chunk {idx + 1}/{total_chunks} uploaded successfully ({len(chunk_data)} bytes)...")

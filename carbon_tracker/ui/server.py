@@ -280,22 +280,28 @@ def reload_data():
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to scan and reload data: {str(e)}")
 
-@app.post("/api/admin/upload-db-chunk")
-async def upload_db_chunk(
-    request: Request,
-    chunk_index: int = Header(..., alias="X-Chunk-Index"),
-    total_chunks: int = Header(..., alias="X-Total-Chunks"),
-    x_migration_secret: str = Header(None)
-):
-    import shutil, gzip
+@app.post("/api/admin/upload-db-chunk-json")
+async def upload_db_chunk_json(request: Request):
+    try:
+        payload = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON body.")
+        
+    secret = payload.get("secret", "")
     expected_secret = os.getenv("MIGRATION_SECRET", "default-temp-secret-key-12345")
-    if not x_migration_secret or x_migration_secret != expected_secret:
-        raise HTTPException(status_code=401, detail="Unauthorized: Invalid secret.")
+    if secret != expected_secret:
+        raise HTTPException(status_code=401, detail="Unauthorized: Invalid migration secret.")
         
-    chunk_bytes = await request.body()
-    if not chunk_bytes:
-        raise HTTPException(status_code=400, detail="Empty chunk payload.")
+    chunk_index = int(payload.get("chunk_index", 0))
+    total_chunks = int(payload.get("total_chunks", 1))
+    data_b64 = payload.get("data_b64", "")
+    
+    if not data_b64:
+        raise HTTPException(status_code=400, detail="Empty data_b64 payload.")
         
+    import base64, gzip, shutil
+    chunk_bytes = base64.b64decode(data_b64)
+    
     temp_dir = Path(DB_PATH).parent / ".chunks_tmp"
     temp_dir.mkdir(parents=True, exist_ok=True)
     
