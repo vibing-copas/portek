@@ -81,11 +81,20 @@ def get_runs():
     if not os.path.exists(DB_PATH):
         return []
     try:
-        conn = sqlite3.connect(DB_PATH)
+        conn = sqlite3.connect(DB_PATH, timeout=10.0)
+        conn.execute("PRAGMA query_only = ON;")
         cursor = conn.cursor()
-        cursor.execute("SELECT DISTINCT ts FROM snapshots ORDER BY ts DESC")
-        timestamps = [row[0] for row in cursor.fetchall()]
+        
+        # Single query to fetch all timestamps and distinct chain counts indexed
+        cursor.execute("SELECT ts, COUNT(DISTINCT chain_id) FROM snapshots GROUP BY ts ORDER BY ts DESC")
+        rows = cursor.fetchall()
         conn.close()
+        
+        if not rows:
+            return []
+
+        ts_chain_map = {row[0]: row[1] for row in rows}
+        timestamps = [row[0] for row in rows]
         
         runs = []
         current_run = []
@@ -104,13 +113,7 @@ def get_runs():
         formatted_runs = []
         for r in runs:
             max_ts = r[0]
-            conn = sqlite3.connect(DB_PATH)
-            cursor = conn.cursor()
-            placeholders = ",".join("?" for _ in r)
-            cursor.execute(f"SELECT COUNT(DISTINCT chain_id) FROM snapshots WHERE ts IN ({placeholders})", r)
-            chain_count = cursor.fetchone()[0]
-            conn.close()
-            
+            chain_count = max(ts_chain_map.get(ts, 1) for ts in r)
             formatted_runs.append({
                 "run_id": max_ts,
                 "timestamp": max_ts,
@@ -126,7 +129,8 @@ def get_data(run_id: int = None):
         return []
     
     try:
-        conn = sqlite3.connect(DB_PATH)
+        conn = sqlite3.connect(DB_PATH, timeout=10.0)
+        conn.execute("PRAGMA query_only = ON;")
         cursor = conn.cursor()
         
         # 1. Get the target timestamp per chain
@@ -136,19 +140,18 @@ def get_data(run_id: int = None):
             cursor.execute("SELECT chain_id, MAX(ts) FROM snapshots WHERE ts <= ? GROUP BY chain_id", (run_id,))
         latest_ts_map = {row[0]: row[1] for row in cursor.fetchall()}
         
-        # 2. Get the previous day's timestamp per chain
+        # 2. Get the previous day's timestamp per chain (using index-backed ts range)
         prev_ts_map = {}
         for chain_id, max_ts in latest_ts_map.items():
             cursor.execute("""
                 SELECT MAX(ts) FROM snapshots 
-                WHERE chain_id = ? 
-                  AND date(ts, 'unixepoch') < date(?, 'unixepoch')
+                WHERE chain_id = ? AND ts < ? - 43200
             """, (chain_id, max_ts))
             row = cursor.fetchone()
             if row and row[0] is not None:
                 prev_ts_map[chain_id] = row[0]
                 
-        # 3. Fetch all target snapshots (along with token_address)
+        # 3. Fetch all target snapshots
         latest_rows = []
         if latest_ts_map:
             conds = []
@@ -190,10 +193,16 @@ def get_data(run_id: int = None):
                 
         conn.close()
         
-        # 5. Build results with comparisons
+        # 5. Build results with comparisons and deduplicate by (cid, kind, level, token_addr.lower())
         results = []
+        seen_keys = set()
         for r in latest_rows:
             cid, kind, level, token_addr, payload_json, ts = r
+            dedup_key = (cid, kind, level, str(token_addr).lower())
+            if dedup_key in seen_keys:
+                continue
+            seen_keys.add(dedup_key)
+
             try:
                 payload = json.loads(payload_json)
             except Exception:
