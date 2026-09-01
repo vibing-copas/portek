@@ -1216,28 +1216,46 @@
             </div>
         </section>
 
-        <!-- Tab Controls & Projection Panel -->
+        <!-- Tab Controls, Market Size Filter & Projection Panel -->
         <div class="controls-row"
             style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
             <div class="tabs" id="tabs-container" style="margin-bottom: 0;">
                 <!-- Rendered dynamically -->
             </div>
 
-            <div class="projection-panel"
-                style="display: flex; align-items: center; gap: 0.75rem; background: rgba(255,255,255,0.03); padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid var(--card-border);">
-                <label
-                    style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; cursor: pointer; font-weight: 500; user-select: none;">
-                    <input type="checkbox" id="projection-toggle" onchange="toggleProjectionMode()"
-                        style="cursor: pointer; transform: scale(1.1);">
-                    Mode Proyeksi (Masa Depan)
-                </label>
-                <div id="projection-input-container" style="display: none; align-items: center; gap: 0.75rem;">
-                    <input type="range" id="projection-days-slider" min="1" max="30" value="3"
-                        oninput="updateProjectionDaysText(this.value)" onchange="renderDashboard()"
-                        style="cursor: pointer; width: 120px;">
-                    <span id="projection-days-label"
-                        style="font-size: 0.9rem; font-weight: 600; color: var(--amber); min-width: 60px;">+3
-                        Hari</span>
+            <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+                <!-- Market Size Filter -->
+                <div class="filter-panel"
+                    style="display: flex; align-items: center; gap: 0.5rem; background: rgba(255,255,255,0.03); padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid var(--card-border);">
+                    <label for="min-size-select" style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em;">Min Size:</label>
+                    <select id="min-size-select" onchange="renderDashboard()" style="background: rgba(15, 23, 42, 0.8); color: var(--text-main); border: 1px solid var(--card-border); padding: 0.35rem 0.6rem; border-radius: 6px; font-size: 0.85rem; font-weight: 600; cursor: pointer; outline: none;">
+                        <option value="0">Semua Size</option>
+                        <option value="100">> $100</option>
+                        <option value="500">> $500</option>
+                        <option value="1000">> $1,000 ($1K)</option>
+                        <option value="5000">> $5,000 ($5K)</option>
+                        <option value="10000">> $10,000 ($10K)</option>
+                        <option value="50000">> $50,000 ($50K)</option>
+                    </select>
+                </div>
+
+                <!-- Projection Panel -->
+                <div class="projection-panel"
+                    style="display: flex; align-items: center; gap: 0.75rem; background: rgba(255,255,255,0.03); padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid var(--card-border);">
+                    <label
+                        style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; cursor: pointer; font-weight: 500; user-select: none;">
+                        <input type="checkbox" id="projection-toggle" onchange="toggleProjectionMode()"
+                            style="cursor: pointer; transform: scale(1.1);">
+                        Mode Proyeksi (Masa Depan)
+                    </label>
+                    <div id="projection-input-container" style="display: none; align-items: center; gap: 0.75rem;">
+                        <input type="range" id="projection-days-slider" min="1" max="30" value="3"
+                            oninput="updateProjectionDaysText(this.value)" onchange="renderDashboard()"
+                            style="cursor: pointer; width: 120px;">
+                        <span id="projection-days-label"
+                            style="font-size: 0.9rem; font-weight: 600; color: var(--amber); min-width: 60px;">+3
+                            Hari</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1671,7 +1689,7 @@
 
         let rawData = [];
         let selectedChain = "ALL";
-        let activeTab = "eta";
+        let activeTab = "l2";
         let snapshotRuns = [];
         let selectedRunId = null;
 
@@ -1976,6 +1994,7 @@
         function selectChain(cid) {
             selectedChain = cid;
             renderSidebar();
+            renderTabs();
             renderDashboard();
             closeMobileSidebar();
         }
@@ -1989,8 +2008,8 @@
                     activeTab = "eta";
                 }
                 tabsContainer.innerHTML = `
-                    <button class="tab-btn ${activeTab === 'eta' ? 'active' : ''}" onclick="switchTab('eta')">⏱️ ETA Terdekat</button>
-                    <button class="tab-btn ${activeTab === 'size' ? 'active' : ''}" onclick="switchTab('size')">💎 Size Terbesar</button>
+                    <button class="tab-btn ${activeTab === 'eta' ? 'active' : ''}" onclick="switchTab('eta')">⏱️ By ETA</button>
+                    <button class="tab-btn ${activeTab === 'size' ? 'active' : ''}" onclick="switchTab('size')">💎 By Size</button>
                 `;
             } else {
                 if (activeTab !== "l2" && activeTab !== "l1" && activeTab !== "execute") {
@@ -2151,12 +2170,29 @@
         function renderDashboard() {
             renderTabs();
 
+            // 1. Filter by selected Chain
             let filtered = rawData;
             if (selectedChain === "ALL") {
                 // Hapus execute dari ALL CHAINS view, hanya simpan trade
                 filtered = rawData.filter(r => r.kind === "trade");
             } else {
                 filtered = rawData.filter(r => r.chain_id === selectedChain);
+            }
+
+            // 2. Filter by Minimum Market Size
+            const minSizeEl = document.getElementById("min-size-select");
+            const minSize = minSizeEl ? (parseFloat(minSizeEl.value) || 0) : 0;
+            if (minSize > 0) {
+                filtered = filtered.filter(item => {
+                    const p = item.payload;
+                    let itemSize = 0;
+                    if (item.kind === "trade") {
+                        itemSize = (parseFloat(p.available) || 0) * (parseFloat(p.market_usd) || 0);
+                    } else {
+                        itemSize = parseFloat(p.size_usd) || 0;
+                    }
+                    return itemSize >= minSize;
+                });
             }
 
             // Update UI Header
@@ -2178,7 +2214,7 @@
             // Filter data by active Tab
             let tabFiltered = [];
             if (selectedChain === "ALL") {
-                tabFiltered = filtered; // Sudah di-filter trade saja
+                tabFiltered = filtered; // Sudah di-filter trade & minSize
             } else {
                 if (activeTab === "l2") {
                     tabFiltered = filtered.filter(r => r.kind === "trade" && r.level === 2);
@@ -2569,6 +2605,31 @@
                     td.innerHTML = c;
                     tr.appendChild(td);
                 });
+
+                // Add Detail Action cell
+                const actionTd = document.createElement("td");
+                let actionHtml = `
+                    <div class="action-cell" style="display: flex; gap: 0.5rem; align-items: center;">
+                        <button class="info-btn" onclick="openDetailModal(${JSON.stringify(item).replace(/"/g, '&quot;')})">ℹ️</button>
+                `;
+
+                if (item.kind === "execute") {
+                    actionHtml += `
+                        <button class="exec-btn" onclick="triggerExecuteOpportunity('${p.token}', ${item.chain_id}, '${p.symbol}')" title="Execute opportunity on blockchain">Execute</button>
+                    `;
+                } else if (item.kind === "trade" && p.status === "OK") {
+                    actionHtml += `
+                        <button class="exec-btn" onclick="triggerTradeOpportunity('${p.token}', ${item.chain_id}, '${p.symbol}', '${p.source_address || ""}', '${p.available_raw || "0"}', '${p.required_source_raw || "0"}')" title="Trade/Arbitrage this opportunity">Trade</button>
+                    `;
+                }
+
+                actionHtml += `</div>`;
+                actionTd.innerHTML = actionHtml;
+                tr.appendChild(actionTd);
+
+                tbody.appendChild(tr);
+            });
+        }
 
                 // Add Detail Action cell
                 const actionTd = document.createElement("td");
