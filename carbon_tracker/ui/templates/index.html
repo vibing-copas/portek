@@ -2478,10 +2478,13 @@
                 return;
             }
 
+            // Store current rendered items globally for safe modal inspection
+            window.currentRenderedItems = displayData;
+
             // Render rows
-            displayData.forEach(item => {
+            displayData.forEach((item, itemIdx) => {
                 const tr = document.createElement("tr");
-                const p = item.payload;
+                const p = item.payload || {};
                 let cells = [];
 
                 if (selectedChain === "ALL") {
@@ -2497,7 +2500,7 @@
                     cells.push(typeBadge);
 
                     cells.push(`
-                        <span class="token-symbol-clickable" onclick="copyTokenAddress('${p.token}', '${p.symbol}')" title="Click to copy contract address: ${p.token}">
+                        <span class="token-symbol-clickable" onclick="copyTokenAddress('${p.token || ""}', '${p.symbol || ""}')" title="Click to copy contract address: ${p.token || ""}">
                             ${p.symbol || ""}
                             ${copyIconSvg}
                         </span>
@@ -2534,10 +2537,10 @@
 
                 } else if (activeTab === "execute") {
                     // Execute row for individual chain
-                    cells.push(`<input type="checkbox" class="exec-row-select" data-token="${p.token}" data-chain="${item.chain_id}" data-symbol="${p.symbol}" data-size="${p.size_usd || 0}" onchange="updateSelectedExecCount()" style="cursor: pointer; transform: scale(1.1);">`);
+                    cells.push(`<input type="checkbox" class="exec-row-select" data-token="${p.token || ""}" data-chain="${item.chain_id}" data-symbol="${p.symbol || ""}" data-size="${p.size_usd || 0}" onchange="updateSelectedExecCount()" style="cursor: pointer; transform: scale(1.1);">`);
 
                     cells.push(`
-                        <span class="token-symbol-clickable" onclick="copyTokenAddress('${p.token}', '${p.symbol}')" title="Click to copy contract address: ${p.token}">
+                        <span class="token-symbol-clickable" onclick="copyTokenAddress('${p.token || ""}', '${p.symbol || ""}')" title="Click to copy contract address: ${p.token || ""}">
                             ${p.symbol || ""}
                             ${copyIconSvg}
                         </span>
@@ -2563,7 +2566,7 @@
                 } else {
                     // Trade (L1 or L2) row for individual chain
                     cells.push(`
-                        <span class="token-symbol-clickable" onclick="copyTokenAddress('${p.token}', '${p.symbol}')" title="Click to copy contract address: ${p.token}">
+                        <span class="token-symbol-clickable" onclick="copyTokenAddress('${p.token || ""}', '${p.symbol || ""}')" title="Click to copy contract address: ${p.token || ""}">
                             ${p.symbol || ""}
                             ${copyIconSvg}
                         </span>
@@ -2606,20 +2609,20 @@
                     tr.appendChild(td);
                 });
 
-                // Add Detail Action cell
+                // Add Detail Action cell using safe index lookup
                 const actionTd = document.createElement("td");
                 let actionHtml = `
                     <div class="action-cell" style="display: flex; gap: 0.5rem; align-items: center;">
-                        <button class="info-btn" onclick="openDetailModal(${JSON.stringify(item).replace(/"/g, '&quot;')})">ℹ️</button>
+                        <button class="info-btn" onclick="openDetailModalByIndex(${itemIdx})">ℹ️</button>
                 `;
 
                 if (item.kind === "execute") {
                     actionHtml += `
-                        <button class="exec-btn" onclick="triggerExecuteOpportunity('${p.token}', ${item.chain_id}, '${p.symbol}')" title="Execute opportunity on blockchain">Execute</button>
+                        <button class="exec-btn" onclick="triggerExecuteOpportunity('${p.token || ""}', ${item.chain_id}, '${p.symbol || ""}')" title="Execute opportunity on blockchain">Execute</button>
                     `;
                 } else if (item.kind === "trade" && p.status === "OK") {
                     actionHtml += `
-                        <button class="exec-btn" onclick="triggerTradeOpportunity('${p.token}', ${item.chain_id}, '${p.symbol}', '${p.source_address || ""}', '${p.available_raw || "0"}', '${p.required_source_raw || "0"}')" title="Trade/Arbitrage this opportunity">Trade</button>
+                        <button class="exec-btn" onclick="triggerTradeOpportunity('${p.token || ""}', ${item.chain_id}, '${p.symbol || ""}', '${p.source_address || ""}', '${p.available_raw || "0"}', '${p.required_source_raw || "0"}')" title="Trade/Arbitrage this opportunity">Trade</button>
                     `;
                 }
 
@@ -2631,29 +2634,10 @@
             });
         }
 
-                // Add Detail Action cell
-                const actionTd = document.createElement("td");
-                let actionHtml = `
-                    <div class="action-cell" style="display: flex; gap: 0.5rem; align-items: center;">
-                        <button class="info-btn" onclick="openDetailModal(${JSON.stringify(item).replace(/"/g, '&quot;')})">ℹ️</button>
-                `;
-
-                if (item.kind === "execute") {
-                    actionHtml += `
-                        <button class="exec-btn" onclick="triggerExecuteOpportunity('${p.token}', ${item.chain_id}, '${p.symbol}')" title="Execute opportunity on blockchain">Execute</button>
-                    `;
-                } else if (item.kind === "trade" && p.status === "OK") {
-                    actionHtml += `
-                        <button class="exec-btn" onclick="triggerTradeOpportunity('${p.token}', ${item.chain_id}, '${p.symbol}', '${p.source_address || ""}', '${p.available_raw || "0"}', '${p.required_source_raw || "0"}')" title="Trade/Arbitrage this opportunity">Trade</button>
-                    `;
-                }
-
-                actionHtml += `</div>`;
-                actionTd.innerHTML = actionHtml;
-                tr.appendChild(actionTd);
-
-                tbody.appendChild(tr);
-            });
+        function openDetailModalByIndex(idx) {
+            if (window.currentRenderedItems && window.currentRenderedItems[idx]) {
+                openDetailModal(window.currentRenderedItems[idx]);
+            }
         }
 
         // Modal Utilities
