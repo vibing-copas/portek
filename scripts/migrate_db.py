@@ -28,12 +28,17 @@ def main():
     endpoint = args.url.rstrip("/") + "/api/admin/migrate-db"
     print(f"[+] Target migration endpoint: {endpoint}")
     
+    import gzip
     with open(db_file, "rb") as f:
-        db_bytes = f.read()
+        raw_bytes = f.read()
         
+    compressed_bytes = gzip.compress(raw_bytes)
+    compressed_mb = len(compressed_bytes) / (1024 * 1024)
+    print(f"[+] Compressed payload using gzip: {file_size_mb:.2f} MB -> {compressed_mb:.2f} MB")
+    
     req = urllib.request.Request(
         endpoint,
-        data=db_bytes,
+        data=compressed_bytes,
         headers={
             "X-Migration-Secret": args.secret,
             "Content-Type": "application/octet-stream"

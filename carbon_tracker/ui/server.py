@@ -287,7 +287,17 @@ async def migrate_db(request: Request, x_migration_secret: str = Header(None)):
         raise HTTPException(status_code=401, detail="Unauthorized: Invalid migration secret header.")
     
     body_bytes = await request.body()
-    if not body_bytes or not body_bytes.startswith(b"SQLite format 3\x00"):
+    if not body_bytes:
+        raise HTTPException(status_code=400, detail="Invalid payload: Empty data.")
+        
+    if body_bytes.startswith(b"\x1f\x8b"):
+        import gzip
+        try:
+            body_bytes = gzip.decompress(body_bytes)
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Failed to decompress gzip payload: {str(e)}")
+
+    if not body_bytes.startswith(b"SQLite format 3\x00"):
         raise HTTPException(status_code=400, detail="Invalid payload: Uploaded data is not a valid SQLite database file.")
     
     target_path = Path(DB_PATH)
