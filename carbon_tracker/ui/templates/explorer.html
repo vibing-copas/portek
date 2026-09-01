@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carbon Vortex | On-Chain Block Explorer</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-dark: #090d16;
+            --card-bg: rgba(15, 23, 42, 0.7);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-blue: #3b82f6;
+            --accent-cyan: #06b6d4;
+            --emerald: #10b981;
+            --amber: #f59e0b;
+            --purple: #a855f7;
+            --indigo: #6366f1;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            min-height: 100vh;
+            background-image: 
+                radial-gradient(circle at 15% 15%, rgba(59, 130, 246, 0.12) 0%, transparent 40%),
+                radial-gradient(circle at 85% 85%, rgba(168, 85, 247, 0.12) 0%, transparent 40%);
+            background-attachment: fixed;
+            line-height: 1.5;
+        }
+
+        /* Top Navigation Header */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.2rem 2rem;
+            background: rgba(9, 13, 22, 0.85);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--card-border);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .brand-logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #fff;
+            text-decoration: none;
+        }
+
+        .brand-logo span {
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .nav-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            text-decoration: none;
+            color: var(--text-main);
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--card-border);
+            transition: all 0.2s ease;
+        }
+
+        .nav-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-1px);
+        }
+
+        .nav-btn.primary {
+            background: linear-gradient(135deg, #2563eb, #3b82f6);
+            border-color: #3b82f6;
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+        }
+
+        .nav-btn.primary:hover {
+            background: linear-gradient(135deg, #1d4ed8, #2563eb);
+        }
+
+        /* Container */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Page Hero Title */
+        .hero-title {
+            margin-bottom: 2rem;
+        }
+
+        .hero-title h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 2.2rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            margin-bottom: 0.35rem;
+        }
+
+        .hero-title p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.25rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 1.25rem 1.5rem;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+        }
+
+        .stat-label {
+            font-size: 0.82rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--text-muted);
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-value {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .stat-desc {
+            font-size: 0.78rem;
+            color: var(--emerald);
+            margin-top: 0.25rem;
+        }
+
+        /* Controls Section */
+        .controls-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 14px;
+            padding: 1.25rem 1.5rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+            backdrop-filter: blur(12px);
+        }
+
+        /* Chain Tabs */
+        .chain-tabs {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            border-bottom: 1px solid var(--card-border);
+            padding-bottom: 1rem;
+        }
+
+        .chain-tab-btn {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--card-border);
+            color: var(--text-muted);
+            padding: 0.45rem 0.9rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .chain-tab-btn:hover {
+            color: var(--text-main);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .chain-tab-btn.active {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(6, 182, 212, 0.2));
+            border-color: #3b82f6;
+            color: #60a5fa;
+        }
+
+        /* Filter Controls */
+        .filter-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .search-box {
+            position: relative;
+            flex: 1;
+            min-width: 280px;
+        }
+
+        .search-box input {
+            width: 100%;
+            background: rgba(15, 23, 42, 0.9);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            padding: 0.6rem 1rem 0.6rem 2.4rem;
+            color: var(--text-main);
+            font-size: 0.88rem;
+            outline: none;
+            transition: border-color 0.2s ease;
+        }
+
+        .search-box input:focus {
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+
+        .search-box svg {
+            position: absolute;
+            left: 0.8rem;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 16px;
+            height: 16px;
+            fill: var(--text-muted);
+        }
+
+        .filter-controls {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .filter-select-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        .filter-select-group select {
+            background: rgba(15, 23, 42, 0.9);
+            color: var(--text-main);
+            border: 1px solid var(--card-border);
+            padding: 0.45rem 0.75rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            outline: none;
+            cursor: pointer;
+        }
+
+        /* Table Card */
+        .table-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 14px;
+            overflow: hidden;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+        }
+
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.88rem;
+        }
+
+        th {
+            background: rgba(15, 23, 42, 0.95);
+            padding: 0.9rem 1.25rem;
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--card-border);
+            white-space: nowrap;
+        }
+
+        td {
+            padding: 0.9rem 1.25rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            white-space: nowrap;
+            vertical-align: middle;
+        }
+
+        tr:hover td {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        /* Badges & Elements */
+        .chain-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.25rem 0.6rem;
+            border-radius: 6px;
+            font-size: 0.78rem;
+            font-weight: 600;
+        }
+
+        .chain-eth { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
+        .chain-sei { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+        .chain-celo { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+        .chain-tac { background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.3); }
+        .chain-coti { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+
+        .hash-code {
+            font-family: 'Fira Code', monospace;
+            font-size: 0.82rem;
+            color: var(--accent-cyan);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+
+        .hash-code:hover {
+            text-decoration: underline;
+        }
+
+        .copy-icon {
+            width: 13px;
+            height: 13px;
+            fill: var(--text-muted);
+            cursor: pointer;
+            transition: fill 0.2s ease;
+        }
+
+        .copy-icon:hover {
+            fill: #fff;
+        }
+
+        .token-pair {
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .level-badge {
+            display: inline-block;
+            padding: 0.15rem 0.45rem;
+            border-radius: 4px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            background: rgba(255, 255, 255, 0.06);
+            color: var(--text-muted);
+        }
+
+        .level-badge.l2 {
+            background: rgba(59, 130, 246, 0.12);
+            color: #60a5fa;
+        }
+
+        .level-badge.l1 {
+            background: rgba(168, 85, 247, 0.12);
+            color: #c084fc;
+        }
+
+        .amount-usd {
+            font-weight: 700;
+            color: var(--emerald);
+        }
+
+        /* Pagination Bar */
+        .pagination-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            background: rgba(15, 23, 42, 0.95);
+            border-top: 1px solid var(--card-border);
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .page-btns {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .page-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--card-border);
+            color: var(--text-main);
+            padding: 0.35rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .page-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .page-btn:not(:disabled):hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--text-muted);
+        }
+
+        .empty-icon {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Toast */
+        #toast-container {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            z-index: 9999;
+        }
+
+        .toast {
+            background: rgba(15, 23, 42, 0.95);
+            border: 1px solid var(--accent-blue);
+            color: #fff;
+            padding: 0.75rem 1.25rem;
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            font-size: 0.88rem;
+            margin-top: 0.5rem;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Top Navigation Header -->
+    <header>
+        <a href="/explorer" class="brand-logo">
+            ⚡ <span>CARBON EXPLORER</span>
+        </a>
+        <div class="nav-links">
+            <a href="/" class="nav-btn primary">
+                📊 Arbitrage Dashboard
+            </a>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Hero Section -->
+        <div class="hero-title">
+            <h1>On-Chain Trade & Event Feed</h1>
+            <p>Pemindaian log event historis sejak <strong>Contract Creation Block</strong> antar-blockchain (Urutan Berdasarkan Waktu Terakhir / Newest First).</p>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Total Trade Events</div>
+                <div class="stat-value" id="stat-total-trades">-</div>
+                <div class="stat-desc">📈 Log transaksi terverifikasi</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Total Volume Traded (USD)</div>
+                <div class="stat-value" id="stat-total-volume">-</div>
+                <div class="stat-desc">💎 Akumulasi volume histori</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Urutan Tampilan</div>
+                <div class="stat-value" style="color: var(--accent-cyan); font-size: 1.4rem; padding-top: 0.3rem;">⏱️ Newest First</div>
+                <div class="stat-desc">Data terbaru ditampilkan paling atas</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Contract Creation Block</div>
+                <div class="stat-value" style="font-size: 1.2rem; padding-top: 0.3rem;" id="stat-blocks">ETH #21100348 | SEI #1057...</div>
+                <div class="stat-desc">Pemindaian sejak block pertama</div>
+            </div>
+        </div>
+
+        <!-- Controls Card -->
+        <div class="controls-card">
+            <!-- Chain Tabs -->
+            <div class="chain-tabs">
+                <button class="chain-tab-btn active" onclick="setChainFilter('ALL')">🌐 ALL CHAINS</button>
+                <button class="chain-tab-btn" onclick="setChainFilter('1')">🔹 Ethereum (1)</button>
+                <button class="chain-tab-btn" onclick="setChainFilter('1329')">🔴 Sei Mainnet (1329)</button>
+                <button class="chain-tab-btn" onclick="setChainFilter('42220')">🟢 Celo Mainnet (42220)</button>
+                <button class="chain-tab-btn" onclick="setChainFilter('239')">🟣 TAC Network (239)</button>
+                <button class="chain-tab-btn" onclick="setChainFilter('2632500')">🟡 COTI Network (2632500)</button>
+            </div>
+
+            <!-- Filter Row -->
+            <div class="filter-row">
+                <div class="search-box">
+                    <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                    <input type="text" id="search-input" placeholder="Cari berdasarkan Token Symbol, Contract Address (0x...), atau Tx Hash..." oninput="handleSearch()">
+                </div>
+
+                <div class="filter-controls">
+                    <div class="filter-select-group">
+                        <label for="min-usd-select">Min Volume:</label>
+                        <select id="min-usd-select" onchange="renderFeed()">
+                            <option value="0">Semua Volume</option>
+                            <option value="10">> $10</option>
+                            <option value="100">> $100</option>
+                            <option value="1000">> $1,000</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-select-group">
+                        <label for="limit-select">Per Halaman:</label>
+                        <select id="limit-select" onchange="setPageLimit(this.value)">
+                            <option value="25">25 Baris</option>
+                            <option value="50" selected>50 Baris</option>
+                            <option value="100">100 Baris</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Table View Card -->
+        <div class="table-card">
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Tx Hash</th>
+                            <th>Waktu (Age)</th>
+                            <th>Chain</th>
+                            <th>Pasangan (Pair)</th>
+                            <th>Tipe Event</th>
+                            <th>Volume Trade</th>
+                            <th>Trader / Caller</th>
+                        </tr>
+                    </thead>
+                    <tbody id="trades-tbody">
+                        <!-- Rendered via JS -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination Bar -->
+            <div class="pagination-bar">
+                <div id="page-info">Menampilkan 0-0 dari 0 transaksi</div>
+                <div class="page-btns">
+                    <button class="page-btn" id="prev-btn" onclick="changePage(-1)" disabled>← Sebelum</button>
+                    <button class="page-btn" id="next-btn" onclick="changePage(1)">Sesudah →</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast-container"></div>
+
+    <script>
+        const copyIconSvg = `<svg class="copy-icon" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>`;
+
+        const CHAIN_CLASSES = {
+            1: "chain-eth",
+            1329: "chain-sei",
+            42220: "chain-celo",
+            239: "chain-tac",
+            2632500: "chain-coti"
+        };
+
+        const CHAIN_NAMES = {
+            1: "Ethereum",
+            1329: "Sei",
+            42220: "Celo",
+            239: "TAC",
+            2632500: "COTI"
+        };
+
+        let selectedChainId = "ALL";
+        let allFetchedTrades = [];
+        let filteredTrades = [];
+        let currentPage = 1;
+        let pageLimit = 50;
+
+        async function fetchExplorerTrades() {
+            document.getElementById("trades-tbody").innerHTML = `
+                <tr>
+                    <td colspan="7" class="empty-state">
+                        <div class="empty-icon">🔄</div>
+                        <div>Mengambil log transaksi on-chain...</div>
+                    </td>
+                </tr>
+            `;
+            try {
+                const res = await fetch(`/api/explorer/trades?chain_id=${selectedChainId}&limit=5000`);
+                const data = await res.json();
+                
+                allFetchedTrades = data.trades || [];
+                
+                // Update stats
+                document.getElementById("stat-total-trades").innerText = (data.total || 0).toLocaleString();
+                document.getElementById("stat-total-volume").innerText = "$" + Math.round(data.total_volume_usd || 0).toLocaleString();
+                
+                renderFeed();
+            } catch (err) {
+                console.error("Gagal mengambil trades:", err);
+                document.getElementById("trades-tbody").innerHTML = `
+                    <tr>
+                        <td colspan="7" class="empty-state">
+                            <div class="empty-icon">⚠️</div>
+                            <div>Gagal memuat log transaksi dari server.</div>
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        function setChainFilter(cid) {
+            selectedChainId = cid;
+            currentPage = 1;
+            
+            document.querySelectorAll(".chain-tab-btn").forEach(btn => {
+                btn.classList.remove("active");
+                if (btn.innerText.includes(cid) || (cid === "ALL" && btn.innerText.includes("ALL"))) {
+                    btn.classList.add("active");
+                }
+            });
+
+            fetchExplorerTrades();
+        }
+
+        function handleSearch() {
+            currentPage = 1;
+            renderFeed();
+        }
+
+        function setPageLimit(limit) {
+            pageLimit = parseInt(limit) || 50;
+            currentPage = 1;
+            renderFeed();
+        }
+
+        function renderFeed() {
+            const query = (document.getElementById("search-input").value || "").trim().lowerCase || (document.getElementById("search-input").value || "").trim().toLowerCase();
+            const minUsd = parseFloat(document.getElementById("min-usd-select").value) || 0;
+
+            // Apply search & minUsd filter
+            filteredTrades = allFetchedTrades.filter(t => {
+                if (minUsd > 0 && (t.usd_value || 0) < minUsd) return false;
+                if (!query) return true;
+                
+                return (
+                    (t.token_symbol || "").toLowerCase().includes(query) ||
+                    (t.token_address || "").toLowerCase().includes(query) ||
+                    (t.tx_hash || "").toLowerCase().includes(query) ||
+                    (t.pair_name || "").toLowerCase().includes(query) ||
+                    (t.caller || "").toLowerCase().includes(query)
+                );
+            });
+
+            // Ensure sorting BY TIME DESCENDING (newest first)
+            filteredTrades.sort((a, b) => (b.timestamp_raw || 0) - (a.timestamp_raw || 0));
+
+            const total = filteredTrades.length;
+            const totalPages = Math.ceil(total / pageLimit) || 1;
+            if (currentPage > totalPages) currentPage = totalPages;
+            if (currentPage < 1) currentPage = 1;
+
+            const startIdx = (currentPage - 1) * pageLimit;
+            const endIdx = Math.min(startIdx + pageLimit, total);
+            const pageItems = filteredTrades.slice(startIdx, endIdx);
+
+            const tbody = document.getElementById("trades-tbody");
+            tbody.innerHTML = "";
+
+            if (pageItems.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="empty-state">
+                            <div class="empty-icon">📭</div>
+                            <div>Tidak ada log transaksi yang cocok dengan filter.</div>
+                        </td>
+                    </tr>
+                `;
+                document.getElementById("page-info").innerText = "Menampilkan 0 dari 0 transaksi";
+                document.getElementById("prev-btn").disabled = true;
+                document.getElementById("next-btn").disabled = true;
+                return;
+            }
+
+            pageItems.forEach(item => {
+                const tr = document.createElement("tr");
+
+                // Tx Hash cell
+                const hashShort = item.tx_hash ? (item.tx_hash.substring(0, 8) + "..." + item.tx_hash.substring(item.tx_hash.length - 6)) : "-";
+                const hashCell = item.explorer_url ? 
+                    `<a href="${item.explorer_url}" target="_blank" class="hash-code" title="${item.tx_hash}">${hashShort} 🔗</a>` : 
+                    `<span class="hash-code" title="${item.tx_hash}">${hashShort}</span>`;
+
+                // Time cell
+                const timeStr = item.timestamp || (item.timestamp_raw ? new Date(item.timestamp_raw * 1000).toISOString().replace('T', ' ').substring(0, 19) : "-");
+
+                // Chain Badge
+                const chainClass = CHAIN_CLASSES[item.chain_id] || "chain-eth";
+                const chainName = CHAIN_NAMES[item.chain_id] || `Chain ${item.chain_id}`;
+                const chainBadge = `<span class="chain-badge ${chainClass}">${chainName}</span>`;
+
+                // Pair & token address copy
+                const pairStr = item.pair_name || `${item.source_symbol || "?"} → ${item.token_symbol || "?"}`;
+
+                // Level Badge
+                const levelClass = item.level === 1 ? "l1" : "l2";
+                const levelBadge = `<span class="level-badge ${levelClass}">L${item.level || 2} Trade</span>`;
+
+                // Volume & USD
+                const sourceAmt = item.source_formatted ? item.source_formatted.toFixed(2) : "0";
+                const usdVal = item.usd_value ? `$${item.usd_value.toFixed(2)}` : "$0.00";
+                const volumeHtml = `<div><strong>${sourceAmt} ${item.source_symbol || ""}</strong></div><div class="amount-usd">${usdVal}</div>`;
+
+                // Caller
+                const callerShort = item.caller ? (item.caller.substring(0, 6) + "..." + item.caller.substring(item.caller.length - 4)) : "-";
+
+                tr.innerHTML = `
+                    <td>${hashCell}</td>
+                    <td style="color: var(--text-muted); font-size: 0.82rem;">${timeStr}</td>
+                    <td>${chainBadge}</td>
+                    <td><span class="token-pair">${pairStr}</span></td>
+                    <td>${levelBadge}</td>
+                    <td>${volumeHtml}</td>
+                    <td style="font-family: 'Fira Code', monospace; font-size: 0.8rem; color: var(--text-muted);">${callerShort}</td>
+                `;
+
+                tbody.appendChild(tr);
+            });
+
+            // Update Pagination UI
+            document.getElementById("page-info").innerText = `Menampilkan ${startIdx + 1}-${endIdx} dari ${total} transaksi`;
+            document.getElementById("prev-btn").disabled = currentPage <= 1;
+            document.getElementById("next-btn").disabled = currentPage >= totalPages;
+        }
+
+        function changePage(delta) {
+            currentPage += delta;
+            renderFeed();
+        }
+
+        function showToast(msg) {
+            const container = document.getElementById("toast-container");
+            const toast = document.createElement("div");
+            toast.className = "toast";
+            toast.innerText = msg;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        // Initialize on load
+        fetchExplorerTrades();
+    </script>
+</body>
+
+</html>

@@ -387,6 +387,110 @@ def find_db_files():
         "found_database_files": found_files
     }
 
+EXPLORER_CHAINS = {
+    1: {"name": "Ethereum", "file": "data/vortex_eth_trade_totals.json", "explorer": "https://etherscan.io/tx/"},
+    1329: {"name": "Sei Network", "file": "data/vortex_sei_trade_totals.json", "explorer": "https://seitrace.com/tx/"},
+    42220: {"name": "Celo Mainnet", "file": "data/vortex_celo_trade_totals.json", "explorer": "https://celoscan.io/tx/"},
+    239: {"name": "TAC Network", "file": "data/vortex_tac_trade_totals.json", "explorer": "https://turntrade.build/tx/"},
+    2632500: {"name": "COTI Network", "file": "data/vortex_coti_trade_totals.json", "explorer": "https://coti-explorer.coti.io/tx/"}
+}
+
+_trades_cache = None
+_trades_cache_mtime = 0
+
+def load_explorer_trades():
+    global _trades_cache, _trades_cache_mtime
+    
+    current_mtime = 0
+    for cfg in EXPLORER_CHAINS.values():
+        fpath = str(ROOT / cfg["file"])
+        if os.path.exists(fpath):
+            current_mtime = max(current_mtime, os.path.getmtime(fpath))
+            
+    if _trades_cache is not None and _trades_cache_mtime == current_mtime:
+        return _trades_cache
+        
+    trades = []
+    for cid, cfg in EXPLORER_CHAINS.items():
+        fpath = str(ROOT / cfg["file"])
+        if os.path.exists(fpath):
+            try:
+                with open(fpath, "r", encoding="utf-8") as f:
+                    token_items = json.load(f)
+                    for tok in token_items:
+                        symbol = tok.get("symbol", "UNKNOWN")
+                        token_addr = tok.get("address", "")
+                        for t in tok.get("trades", []):
+                            tx_h = t.get("tx_hash", "")
+                            explorer_url = f"{cfg['explorer']}{tx_h}" if tx_h else ""
+                            trades.append({
+                                "chain_id": cid,
+                                "chain_name": cfg["name"],
+                                "token_symbol": symbol,
+                                "token_address": token_addr,
+                                "tx_hash": tx_h,
+                                "explorer_url": explorer_url,
+                                "block_number": t.get("block_number", 0),
+                                "timestamp": t.get("timestamp", ""),
+                                "timestamp_raw": t.get("timestamp_raw", 0),
+                                "caller": t.get("caller", ""),
+                                "level": t.get("level", 2),
+                                "pair_name": t.get("pair_name", ""),
+                                "source_symbol": t.get("source_symbol", ""),
+                                "source_formatted": t.get("source_formatted", 0),
+                                "target_formatted": t.get("target_formatted", 0),
+                                "unit_price": t.get("unit_price", 0),
+                                "usd_value": t.get("usd_value", 0)
+                            })
+            except Exception as e:
+                print(f"[Explorer] Error loading {fpath}: {e}")
+                
+    # Sort BY TIME DESCENDING (newest at top)
+    trades.sort(key=lambda x: x["timestamp_raw"], reverse=True)
+    _trades_cache = trades
+    _trades_cache_mtime = current_mtime
+    return trades
+
+@app.get("/api/explorer/trades")
+def get_explorer_trades(chain_id: str = "ALL", q: str = None, limit: int = 100, offset: int = 0):
+    all_trades = load_explorer_trades()
+    
+    filtered = all_trades
+    if chain_id != "ALL" and chain_id.isdigit():
+        target_cid = int(chain_id)
+        filtered = [t for t in filtered if t["chain_id"] == target_cid]
+        
+    if q:
+        query_str = q.strip().lower()
+        filtered = [
+            t for t in filtered if (
+                query_str in t["token_symbol"].lower() or
+                query_str in t["token_address"].lower() or
+                query_str in t["tx_hash"].lower() or
+                query_str in t["pair_name"].lower() or
+                query_str in t["caller"].lower()
+            )
+        ]
+        
+    total_count = len(filtered)
+    total_volume_usd = sum(t["usd_value"] for t in filtered)
+    paginated = filtered[offset : offset + limit]
+    
+    return {
+        "total": total_count,
+        "total_volume_usd": total_volume_usd,
+        "limit": limit,
+        "offset": offset,
+        "trades": paginated
+    }
+
+@app.get("/explorer", response_class=HTMLResponse)
+def read_explorer():
+    explorer_file = TEMPLATES_DIR / "explorer.html"
+    if not explorer_file.exists():
+        raise HTTPException(status_code=404, detail="Explorer template not found.")
+    return FileResponse(str(explorer_file))
+
 @app.get("/", response_class=HTMLResponse)
 def read_root():
     index_file = TEMPLATES_DIR / "index.html"
