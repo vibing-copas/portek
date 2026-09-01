@@ -44,7 +44,46 @@ def connect(path, timeout=60.0):
     if "first_scanned_block" not in progress_cols:
         db.execute("ALTER TABLE scan_progress ADD COLUMN first_scanned_block INTEGER")
             
+    seed_if_empty(db, p.parents[1])
     return db
+
+def seed_if_empty(db, root_path=None):
+    """If token_registry table is empty on startup (e.g. fresh Railway deploy), auto-populate from token_metadata.json."""
+    try:
+        cur = db.execute("SELECT COUNT(*) FROM token_registry")
+        count = cur.fetchone()[0]
+        if count > 0:
+            return  # DB already has tokens, no seeding needed
+            
+        if root_path is None:
+            root_path = Path(__file__).resolve().parents[2]
+            
+        meta_file = root_path / "data" / "token_metadata.json"
+        if meta_file.exists():
+            print("[Auto-Seed] Database token_registry is empty. Seeding initial token registry from repository data...")
+            with open(meta_file, "r", encoding="utf-8") as f:
+                token_dict = json.load(f)
+                
+            seeded_count = 0
+            for key, meta in token_dict.items():
+                parts = key.split(":")
+                if len(parts) == 2 and parts[0].isdigit():
+                    cid = int(parts[0])
+                    addr = parts[1].lower()
+                    sym = meta.get("symbol", "UNKNOWN")
+                    dec = int(meta.get("decimals", 18))
+                    
+                    db.execute("""
+                        INSERT OR IGNORE INTO token_registry (
+                            chain_id, token_address, symbol, decimals, 
+                            first_seen_block, last_seen_block, events
+                        ) VALUES (?, ?, ?, ?, 1000000, 2000000, 1)
+                    """, (cid, addr, sym, dec))
+                    seeded_count += 1
+            db.commit()
+            print(f"[Auto-Seed] Successfully seeded {seeded_count} tokens into token_registry!")
+    except Exception as e:
+        print(f"[Auto-Seed] Error during auto-seeding: {e}")
 
 def get_scan_progress(db, chain_id):
     row = db.execute('SELECT first_scanned_block, last_scanned_block FROM scan_progress WHERE chain_id=?', (chain_id,)).fetchone()
