@@ -1,0 +1,34 @@
+{
+  "ethereum": {
+    "chain_id": 1,
+    "vortex_address": "0xd053dcd7037af7204cece544ea9f227824d79801",
+    "target_token": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "target_symbol": "ETH",
+    "final_target_token": "0x1f573d6fb3f13d689ff844b4ce37794d79a7ff1c",
+    "final_target_symbol": "BNT"
+  },
+  "sei": {
+    "chain_id": 1329,
+    "vortex_address": "0x5715203b16f15d7349cb1e3537365e9664eaf933",
+    "target_token": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "target_symbol": "ETH",
+    "final_target_token": "0x160345fc359604fc6e70e3c5facbde5f7a9342d8",
+    "final_target_symbol": "WETH"
+  },
+  "celo": {
+    "chain_id": 42220,
+    "vortex_address": "0xd9d89e8a0dfe549e5b424d5b511cb3b84a764857",
+    "target_token": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "target_symbol": "ETH",
+    "final_target_token": "0xd221812de1bd094f35587ee8e174b07b6167d9af",
+    "final_target_symbol": "WETH"
+  },
+  "coti": {
+    "chain_id": 2632500,
+    "vortex_address": "0x653e98561925b55977c0100636ccd314c4f232c5",
+    "target_token": "0x639acc80569c5fc83c6fbf2319a6cc38bbfe26d1",
+    "target_symbol": "WETH",
+    "final_target_token": "0x0000000000000000000000000000000000000000",
+    "final_target_symbol": "FINAL"
+  }
+}
