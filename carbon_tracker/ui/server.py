@@ -280,6 +280,95 @@ def reload_data():
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to scan and reload data: {str(e)}")
 
+@app.post("/api/admin/upload-db-chunk")
+async def upload_db_chunk(
+    request: Request,
+    chunk_index: int = Header(..., alias="X-Chunk-Index"),
+    total_chunks: int = Header(..., alias="X-Total-Chunks"),
+    x_migration_secret: str = Header(None)
+):
+    import shutil, gzip
+    expected_secret = os.getenv("MIGRATION_SECRET", "default-temp-secret-key-12345")
+    if not x_migration_secret or x_migration_secret != expected_secret:
+        raise HTTPException(status_code=401, detail="Unauthorized: Invalid secret.")
+        
+    chunk_bytes = await request.body()
+    if not chunk_bytes:
+        raise HTTPException(status_code=400, detail="Empty chunk payload.")
+        
+    temp_dir = Path(DB_PATH).parent / ".chunks_tmp"
+    temp_dir.mkdir(parents=True, exist_ok=True)
+    
+    chunk_file = temp_dir / f"chunk_{chunk_index}.bin"
+    with open(chunk_file, "wb") as f:
+        f.write(chunk_bytes)
+        
+    received_chunks = list(temp_dir.glob("chunk_*.bin"))
+    if len(received_chunks) == total_chunks:
+        combined_bytes = bytearray()
+        for i in range(total_chunks):
+            cf = temp_dir / f"chunk_{i}.bin"
+            if not cf.exists():
+                return {"status": "in_progress", "received": len(received_chunks), "total": total_chunks}
+            with open(cf, "rb") as f:
+                combined_bytes.extend(f.read())
+                
+        final_bytes = bytes(combined_bytes)
+        if final_bytes.startswith(b"\x1f\x8b"):
+            try:
+                final_bytes = gzip.decompress(final_bytes)
+            except Exception as e:
+                shutil.rmtree(temp_dir, ignore_errors=True)
+                raise HTTPException(status_code=400, detail=f"Gzip decompress error: {e}")
+                
+        if not final_bytes.startswith(b"SQLite format 3\x00"):
+            shutil.rmtree(temp_dir, ignore_errors=True)
+            raise HTTPException(status_code=400, detail="Reassembled data is not valid SQLite database.")
+            
+        target_path = Path(DB_PATH)
+        target_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        tmp_migrate = target_path.with_suffix(".tmp_migrate")
+        with open(tmp_migrate, "wb") as f:
+            f.write(final_bytes)
+            
+        if target_path.exists():
+            for ext in ["-wal", "-shm"]:
+                wf = target_path.with_name(target_path.name + ext)
+                if wf.exists():
+                    try: wf.unlink()
+                    except Exception: pass
+                    
+        os.replace(tmp_migrate, target_path)
+        shutil.rmtree(temp_dir, ignore_errors=True)
+        
+        stats = {}
+        try:
+            conn = sqlite3.connect(str(target_path))
+            c = conn.cursor()
+            for t in ["token_registry", "snapshots", "scan_progress"]:
+                try:
+                    c.execute(f"SELECT COUNT(*) FROM {t}")
+                    stats[t] = c.fetchone()[0]
+                except Exception:
+                    stats[t] = 0
+            conn.close()
+        except Exception as e:
+            stats["error"] = str(e)
+            
+        return {
+            "status": "success",
+            "message": "Database chunked upload & migration completed successfully!",
+            "file_size_bytes": len(final_bytes),
+            "table_stats": stats
+        }
+        
+    return {
+        "status": "in_progress",
+        "received_chunks": len(received_chunks),
+        "total_chunks": total_chunks
+    }
+
 @app.post("/api/admin/migrate-db")
 async def migrate_db(request: Request, x_migration_secret: str = Header(None)):
     expected_secret = os.getenv("MIGRATION_SECRET", "default-temp-secret-key-12345")

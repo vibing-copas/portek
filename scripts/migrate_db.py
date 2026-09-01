@@ -36,33 +36,42 @@ def main():
     compressed_mb = len(compressed_bytes) / (1024 * 1024)
     print(f"[+] Compressed payload using gzip: {file_size_mb:.2f} MB -> {compressed_mb:.2f} MB")
     
-    req = urllib.request.Request(
-        endpoint,
-        data=compressed_bytes,
-        headers={
-            "X-Migration-Secret": args.secret,
-            "Content-Type": "application/octet-stream"
-        },
-        method="POST"
-    )
+    CHUNK_SIZE = 250 * 1024  # 250 KB per chunk
+    chunks = [compressed_bytes[i:i + CHUNK_SIZE] for i in range(0, len(compressed_bytes), CHUNK_SIZE)]
+    total_chunks = len(chunks)
+    chunk_endpoint = args.url.rstrip("/") + "/api/admin/upload-db-chunk"
     
-    try:
-        print("[+] Uploading database file to Railway deployment...")
-        with urllib.request.urlopen(req) as resp:
-            status_code = resp.status
-            res_body = resp.read().decode("utf-8")
-            res_data = json.loads(res_body)
-            
-            print(f"\n[✓] Migration Successful! (HTTP {status_code})")
-            print(json.dumps(res_data, indent=2))
-    except urllib.error.HTTPError as e:
-        err_body = e.read().decode("utf-8")
-        print(f"\n[-] HTTP Error {e.code}: {e.reason}")
-        print(err_body)
-        sys.exit(1)
-    except Exception as e:
-        print(f"\n[-] Failed to connect or upload: {e}")
-        sys.exit(1)
+    print(f"[+] Uploading database in {total_chunks} small chunks (250 KB each) to Railway...")
+    
+    for idx, chunk_data in enumerate(chunks):
+        req = urllib.request.Request(
+            chunk_endpoint,
+            data=chunk_data,
+            headers={
+                "X-Migration-Secret": args.secret,
+                "X-Chunk-Index": str(idx),
+                "X-Total-Chunks": str(total_chunks),
+                "Content-Type": "application/octet-stream"
+            },
+            method="POST"
+        )
+        try:
+            with urllib.request.urlopen(req) as resp:
+                res_body = resp.read().decode("utf-8")
+                res_data = json.loads(res_body)
+                if res_data.get("status") == "success":
+                    print(f"\n[✓] Chunked Migration Successful! (All {total_chunks} chunks reassembled on Railway)")
+                    print(json.dumps(res_data, indent=2))
+                else:
+                    print(f"  [+] Chunk {idx + 1}/{total_chunks} uploaded successfully ({len(chunk_data)} bytes)...")
+        except urllib.error.HTTPError as e:
+            err_body = e.read().decode("utf-8")
+            print(f"\n[-] HTTP Error uploading chunk {idx + 1}/{total_chunks} ({e.code}): {e.reason}")
+            print(err_body)
+            sys.exit(1)
+        except Exception as e:
+            print(f"\n[-] Failed uploading chunk {idx + 1}/{total_chunks}: {e}")
+            sys.exit(1)
 
 if __name__ == "__main__":
     main()
