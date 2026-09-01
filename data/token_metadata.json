@@ -342,5 +342,353 @@
   "0xe41d2489571d322189246dafa5ebde1f4699f498": {
     "symbol": "ZRX",
     "decimals": 18
+  },
+  "1329:0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee": {
+    "symbol": "SEI",
+    "decimals": 18
+  },
+  "1329:0x3894085ef7ff0f0aedf52e2a2704928d1ec074f1": {
+    "symbol": "USDC.n",
+    "decimals": 6
+  },
+  "1329:0x5f0e07dfee5832faa00c63f2d33a0d79150e8598": {
+    "symbol": "SEIYAN",
+    "decimals": 6
+  },
+  "1329:0xb75d0b03c06a926e488e2659df1a861f860bd3d1": {
+    "symbol": "USDT",
+    "decimals": 6
+  },
+  "1329:0xe30fedd158a2e3b13e9badaeabafc5516e95e8c7": {
+    "symbol": "WSEI",
+    "decimals": 18
+  },
+  "1329:0x9151434b16b9763660705744891fa906f660ecc5": {
+    "symbol": "USD0",
+    "decimals": 6
+  },
+  "1329:0x5cf6826140c1c56ff49c808a1a75407cd1df9423": {
+    "symbol": "iSEI",
+    "decimals": 6
+  },
+  "1329:0xe5085112160ff75ee89a540cdba570eafdaf7f57": {
+    "symbol": "STSEI",
+    "decimals": 6
+  },
+  "1329:0x0dd9e6a6aeb91f1e3596f69d5443b6ca2e864896": {
+    "symbol": "SHENRN",
+    "decimals": 6
+  },
+  "1329:0xbd82f3bfe1df0c84faec88a22ebc34c9a86595dc": {
+    "symbol": "CHIPS",
+    "decimals": 6
+  },
+  "1329:0x962aae191622498bca205c1c1b73e59ac7d295f2": {
+    "symbol": "WILSON",
+    "decimals": 6
+  },
+  "1329:0x95597eb8d227a7c4b4f5e807a815c5178ee6dbe1": {
+    "symbol": "MILLI",
+    "decimals": 6
+  },
+  "1329:0x059a6b0ba116c63191182a0956cf697d0d2213ec": {
+    "symbol": "syUSD",
+    "decimals": 18
+  },
+  "1329:0x893cc8a006b88beef66c79bbb1c14b9c6c0ad7cc": {
+    "symbol": "UMI",
+    "decimals": 6
+  },
+  "1329:0x00bc9af972b5fb3b7fa04827bd3c17d4599bad8b": {
+    "symbol": "WAIT",
+    "decimals": 6
+  },
+  "1329:0x019ea1347bd9bc912c0221d24983a74e9386b794": {
+    "symbol": "GOKU",
+    "decimals": 18
+  },
+  "1329:0xdf3d7dd2848f491645974215474c566e79f2e538": {
+    "symbol": "S8N",
+    "decimals": 18
+  },
+  "1329:0xd78be621436e69c81e4d0e9f29be14c5ec51e6ae": {
+    "symbol": "$gonad",
+    "decimals": 18
+  },
+  "1329:0x3ea30c06f4ba6f696d3ba4b660c39da96ed8f686": {
+    "symbol": "SBC",
+    "decimals": 18
+  },
+  "1329:0xd0d622de44a521404dc50e4abef08de82269dcbf": {
+    "symbol": "SFN",
+    "decimals": 18
+  },
+  "1329:0x9b31ad7d1ee5a37c64a5972275c5f09fffbc2c6f": {
+    "symbol": "SENSEI",
+    "decimals": 18
+  },
+  "1329:0x9c367a272f8e318d10118c6367fd69def30e430e": {
+    "symbol": "Pepei",
+    "decimals": 18
+  },
+  "1329:0x4605232ea642a328bdc036f2eba9b8c4c59b6cf8": {
+    "symbol": "BULLX",
+    "decimals": 18
+  },
+  "1329:0xecf7f1efc9620a911339619c91c9fa0f71e0600e": {
+    "symbol": "SEIYUN",
+    "decimals": 18
+  },
+  "1329:0xf5020dc8ec5e0ef8869ecc3044933356650b61cf": {
+    "symbol": "JAYJEO",
+    "decimals": 18
+  },
+  "1329:0xc18b6a15fb0ceaf5eb18696eefcb5bc7b9107149": {
+    "symbol": "POPO",
+    "decimals": 18
+  },
+  "1329:0x6291148ae49e0f0d847bb97c4e060e49d87638ba": {
+    "symbol": "REX",
+    "decimals": 18
+  },
+  "1329:0xf20903d034b12a7266055fe97cebdb9199ec6925": {
+    "symbol": "BOOBLE",
+    "decimals": 18
+  },
+  "1329:0xf63980e3818607c0797e994cfd34c1c592968469": {
+    "symbol": "SUPERSEIZ",
+    "decimals": 18
+  },
+  "1329:0xb13e945556f3f69187599f4edc1982f24f10462a": {
+    "symbol": "HARD",
+    "decimals": 18
+  },
+  "1329:0xe15fc38f6d8c56af07bbcbe3baf5708a2bf42392": {
+    "symbol": "USDC",
+    "decimals": 6
+  },
+  "1329:0x888d81e3ea5e8362b5f69188cbcf34fa8da4b888": {
+    "symbol": "LARRY",
+    "decimals": 18
+  },
+  "1329:0xe85dc0cceca105755753fef452c091def5324138": {
+    "symbol": "SAKE",
+    "decimals": 18
+  },
+  "1329:0x6b92994f5d5d7d36608bded50724282f1e58fbb1": {
+    "symbol": "NINJA",
+    "decimals": 18
+  },
+  "1329:0x0555e30da8f98308edb960aa94c0db47230d2b9c": {
+    "symbol": "WBTC",
+    "decimals": 8
+  },
+  "42220:0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee": {
+    "symbol": "CELO",
+    "decimals": 18
+  },
+  "42220:0xe8537a3d056da446677b9e9d6c5db704eaab4787": {
+    "symbol": "BRLm",
+    "decimals": 18
+  },
+  "42220:0x765de816845861e75a25fca122bb6898b8b1282a": {
+    "symbol": "USDm",
+    "decimals": 18
+  },
+  "42220:0xceba9300f2b948710d2653dd7b07f33a8b32118c": {
+    "symbol": "USDC",
+    "decimals": 6
+  },
+  "42220:0x48065fbbe25f71c9282ddf5e1cd6d6a887483d5e": {
+    "symbol": "USD",
+    "decimals": 6
+  },
+  "42220:0xaf37e8b6c9ed7f6318979f56fc287d76c30847ff": {
+    "symbol": "XAUt0",
+    "decimals": 6
+  },
+  "42220:0x4f604735c1cf31399c6e711d5962b2b3e0225ad3": {
+    "symbol": "USDGLO",
+    "decimals": 18
+  },
+  "42220:0xd8763cba276a3738e6de85b4b3bf5fded6d6ca73": {
+    "symbol": "EURm",
+    "decimals": 18
+  },
+  "42220:0x66803fb87abd4aac3cbb3fad7c3aa01f6f3fb207": {
+    "symbol": "WETH",
+    "decimals": 18
+  },
+  "42220:0xc16b81af351ba9e64c1a069e3ab18c244a1e3049": {
+    "symbol": "EURA",
+    "decimals": 18
+  },
+  "42220:0x8ac2901dd8a1f17a1a4768a6ba4c3751e3995b2d": {
+    "symbol": "WBTC",
+    "decimals": 8
+  },
+  "42220:0xc668583dcbdc9ae6fa3ce46462758188adfdfc24": {
+    "symbol": "stCELO",
+    "decimals": 18
+  },
+  "0x0f51bb10119727a7e5ea3538074fb341f56b09ad": {
+    "symbol": "DAO",
+    "decimals": 18
+  },
+  "0x111111111117dc0aa78b770fa6a738034120c302": {
+    "symbol": "1INCH",
+    "decimals": 18
+  },
+  "0x1c5db575e2ff833e46a2e9864c22f4b22e0b37c2": {
+    "symbol": "renZEC",
+    "decimals": 8
+  },
+  "0x38e382f74dfb84608f3c1f10187f6bef5951de93": {
+    "symbol": "MUBI",
+    "decimals": 18
+  },
+  "0x6468e79a80c0eab0f9a2b574c8d5bc374af59414": {
+    "symbol": "eXRD",
+    "decimals": 18
+  },
+  "0x6dea81c8171d0ba574754ef6f8b412f2ed88c54d": {
+    "symbol": "LQTY",
+    "decimals": 18
+  },
+  "0x8290333cef9e6d528dd5618fb97a76f268f3edd4": {
+    "symbol": "ANKR",
+    "decimals": 18
+  },
+  "0x8798249c2e607446efb7ad49ec89dd1865ff4272": {
+    "symbol": "xSUSHI",
+    "decimals": 18
+  },
+  "0xe08d97e151473a848c3d9ca3f323cb720472d015": {
+    "symbol": "UNKNOWN_0xE08D",
+    "decimals": 18
+  },
+  "0xe1fc4455f62a6e89476f1072530c20cf1a0622da": {
+    "symbol": "PHTR",
+    "decimals": 18
+  },
+  "0xc719d010b63e5bbf2c0551872cd5316ed26acd83": {
+    "symbol": "DIP",
+    "decimals": 18
+  },
+  "0xc7283b66eb1eb5fb86327f08e1b5816b0720212b": {
+    "symbol": "TRIBE",
+    "decimals": 18
+  },
+  "0x046eee2cc3188071c02bfc1745a6b17c656e3f3d": {
+    "symbol": "RLB",
+    "decimals": 18
+  },
+  "0x0f71b8de197a1c84d31de0f1fa7926c365f052b3": {
+    "symbol": "ARCONA",
+    "decimals": 18
+  },
+  "0x20561172f791f915323241e885b4f7d5187c36e1": {
+    "symbol": "CAL",
+    "decimals": 18
+  },
+  "0x4965b3b90f3a63fc72f74e53322f66b2a174a98f": {
+    "symbol": "SHIBIE",
+    "decimals": 18
+  },
+  "0x49d72e3973900a195a155a46441f0c08179fdb64": {
+    "symbol": "CRETH2",
+    "decimals": 18
+  },
+  "0x4c4f2b9deb3c91006719bb3232dd4eb39977307c": {
+    "symbol": "BEE",
+    "decimals": 18
+  },
+  "0x5218e472cfcfe0b64a064f055b43b4cdc9efd3a6": {
+    "symbol": "eRSDL",
+    "decimals": 18
+  },
+  "0x5a3e6a77ba2f983ec0d371ea3b475f8bc0811ad5": {
+    "symbol": "0x0",
+    "decimals": 9
+  },
+  "0x72e4f9f808c49a2a61de9c5896298920dc4eeea9": {
+    "symbol": "BITCOIN",
+    "decimals": 8
+  },
+  "0x75c97384ca209f915381755c582ec0e2ce88c1ba": {
+    "symbol": "FINE",
+    "decimals": 18
+  },
+  "0x7c07f7abe10ce8e33dc6c5ad68fe033085256a84": {
+    "symbol": "icETH",
+    "decimals": 18
+  },
+  "0x808507121b80c02388fad14726482e061b8da827": {
+    "symbol": "PENDLE",
+    "decimals": 18
+  },
+  "0x86803e2012cba1ca09d87393f5c739fa9e58ea3c": {
+    "symbol": "Homer Pepe",
+    "decimals": 9
+  },
+  "0x94be6962be41377d5beda8dfe1b100f3bf0eacf3": {
+    "symbol": "DORKL",
+    "decimals": 18
+  },
+  "0xb4272071ecadd69d933adcd19ca99fe80664fc08": {
+    "symbol": "XCHF",
+    "decimals": 18
+  },
+  "0xfe459828c90c0ba4bc8b42f5c5d44f316700b430": {
+    "symbol": "BBS",
+    "decimals": 18
+  },
+  "0xa117000000f279d81a1d3cc75430faa017fa5a2e": {
+    "symbol": "ANT",
+    "decimals": 18
+  },
+  "0xa6ec49e06c25f63292bac1abc1896451a0f4cfb7": {
+    "symbol": "CSCS",
+    "decimals": 18
+  },
+  "0xae7ab96520de3a18e5e111b5eaab095312d7fe84": {
+    "symbol": "stETH",
+    "decimals": 18
+  },
+  "0xc5fb36dd2fb59d3b98deff88425a3f425ee469ed": {
+    "symbol": "TSUKA",
+    "decimals": 9
+  },
+  "0xfb7b4564402e5500db5bb6d63ae671302777c75a": {
+    "symbol": "DEXT",
+    "decimals": 18
+  },
+  "0x24e4d0af5a6b1c3bd336dd60deefa64c704b19b7": {
+    "symbol": "PKS",
+    "decimals": 6
+  },
+  "0x3140e3ead4943a1e603ccac577b50e9889ab27f3": {
+    "symbol": "SUPERSEIZ",
+    "decimals": 18
+  },
+  "0x34a8bb445004e47d1a65573a2c085ce6d134f815": {
+    "symbol": "SENSEI",
+    "decimals": 18
+  },
+  "0x64445f0aecc51e94ad52d8ac56b7190e764e561a": {
+    "symbol": "WFRAX",
+    "decimals": 18
+  },
+  "0x646e178a05b4cb4f2b36d04bd02767cfeed730ca": {
+    "symbol": "BITCH",
+    "decimals": 18
+  },
+  "0x7a6e53ea8a9b81ecdb623cdc546026fac5de0133": {
+    "symbol": "ASTRO",
+    "decimals": 18
+  },
+  "0xdd1358df189af9605dd9978e1c89ee4ec5b4e6fe": {
+    "symbol": "S8N",
+    "decimals": 18
   }
 }
